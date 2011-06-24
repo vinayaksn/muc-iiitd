@@ -199,7 +199,7 @@ void HTTPADCPostTask(void)
 			TCPPutString(MySocket, (BYTE*)"\r\n");
  			TCPPutString(MySocket, (BYTE*)"Content-Length: ");
 		//	TCPPutString(MySocket, (BYTE*)("50"));
-			TCPPutString(MySocket, (BYTE*)("42"));
+			TCPPutString(MySocket, (BYTE*)("51"));
 		//	TCPPut(MySocket, TotalReadBytesArray[0]);
 		//	TCPPut(MySocket, TotalReadBytesArray[1]);
 			TCPPutString(MySocket, (BYTE*)"\r\n\n");
