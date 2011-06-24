@@ -121,7 +121,7 @@ BYTE AN0String[8];
 	int __C30_UART = 2;
 #endif
 
-
+	
 // Private helper functions.
 // These may or may not be present in all applications.
 static void InitAppConfig(void);
@@ -151,7 +151,7 @@ extern void ADCInit();
 extern void SelectChannel(unsigned int);
 extern float convert();
 extern float ReadADCData();
-int PIR,REED1,REED2,LM,LDR;
+int PIR,REED1,REED2,LM,LDR,PIROUT;
 char temp[10];
 char *buff;
 int s;
@@ -237,7 +237,7 @@ extern void HTTPTagPostTask(void);
 		Nop();
 	}
 #endif
-
+ // reset timer count to zero
 
 //
 // Main application entry point.
@@ -248,19 +248,22 @@ void main(void)
 int main(void)
 #endif
 {
-	char d[]="PIR=0&REED1=0&REED2=0&LM=0.0000&LDR=0.0000";
+	
+	char d[]="PIR=0&PIROUT=0&REED1=0&REED2=0&LM=0.0000&LDR=0.0000";
 	PIR=4;
-	REED1=12;
-	REED2=20;
-	LM=25;
-	LDR=36;
+	PIROUT=13;
+	REED1=21;
+	REED2=29;
+	LM=34;
+	LDR=45;
 	buff=d;
 	static DWORD t = 0;
 	static DWORD dwLastIP = 0;
 
 	// Initialize application specific hardware
 	InitializeBoard();
-
+	T1CON=0x8030;// initialize timer 1 count = 256 clock pulses
+	TMR1=0;
 	LED0_IO=1;
 	#if defined(USE_LCD)
 	// Initialize and display the stack version on the LCD
@@ -395,6 +398,7 @@ needed
   
     while(1)
     {
+		buff=d;
 		
 		
         // Blink LED0 (right most one) every second.
@@ -712,20 +716,28 @@ void DisplayIPValue(IP_ADDR IPVal)
 // Processes A/D data from the potentiometer
 static void ProcessIO(void)
 {
-	HTTPADCPostTask();
+	//HTTPADCPostTask();
 	int k;
+	for(k=0;k<10;k++)
+		temp[k]='0';
 	//managing PIR
  		if(PORTBbits.RB4 ==1) 
 		{
+			buff[PIROUT]='1';
 			buff[PIR]='1';
 			TMR1=0;
 			PORTGbits.RG6=1;
 		}
-		else if(TMR1==(unsigned int)(count))
+		else 
 		{
 			buff[PIR]='0';
-			PORTGbits.RG6=0;
-			TMR1=0;
+			//buff[PIROUT]='1';
+			if(TMR1>=(unsigned int)(count))
+			{
+				buff[PIROUT]='0';
+				PORTGbits.RG6=0;
+				TMR1=0;
+			}
 		}
 		//end PIR
 		//managing reed sensor		
@@ -752,14 +764,18 @@ static void ProcessIO(void)
 		}
 		//end reed
 		//getting temperature from AN3
+		s=0;
 		SelectChannel(1);
-		number2(ReadADCData(),1);  //milivolts divided by 10 for abs temp value
-		for(k=LM;k<3;k++)
+		number2(ReadADCData()*100,2);  //milivolts divided by 10 for abs temp value
+		for(k=LM;k<(LM+5);k++)
 			buff[k]=temp[k-LM];
+		for(k=0;k<10;k++)
+			temp[k]='0';
 		//end temperature
+		s=0;
 		SelectChannel(0);
-		number2((ReadADCData()),1);
-		for(k=LDR;k<3;k++)
+		number2((ReadADCData()),2);
+		for(k=LDR;k<(LDR+4);k++)
 			buff[k]=temp[k-LDR];
 		HTTPADCPostTask();
 }
@@ -1131,13 +1147,14 @@ ordinary SCK1 location.  Silicon rev A5 has this fixed, but for simplicity all d
 	TRISBbits.TRISB3=1;  // specify AN3, pin 3 as input for REED-1
 	AD1PCFGbits.PCFG2=1; // setting digital i/p for REED-2 sensor at AN2 , pin 4 on board
 	TRISBbits.TRISB2=1;  // specify AN2, pin 4 as input for REED-2
-	AD1PCFGbits.PCFG3=0; // setting analog input on AN1, Pin 5 on board, for LM35
-	TRISBbits.TRISB3=1;  // specify AN1 as input for temperature..
+	AD1PCFGbits.PCFG1=0; // setting analog input on AN1, Pin 5 on board, for LM35
+//	TRISBbits.TRISB3=1;  // specify AN1 as input for temperature..
 	AD1PCFGbits.PCFG0=0; // setting AN0, pin 6 on board, analog for LDR sensor
-	TRISBbits.TRISB0=1;  // specify AN0 as input for LDR
+//	TRISBbits.TRISB0=1;  // specify AN0 as input for LDR
 	// end of input declarations........
 
-
+	TRISGbits.TRISG13=0;
+	PORTGbits.RG13=1;
 	//Output Declarations .............
 	TRISGbits.TRISG6=0; // output on RG6 for PIR sensor
 	TRISCbits.TRISC4=0; // output on RC4 for REED-1
@@ -1152,8 +1169,7 @@ ordinary SCK1 location.  Silicon rev A5 has this fixed, but for simplicity all d
 	// Timer to set interval on PIR sensor
 	// this sets the time when the output goes low after no motion is detected
 	// starting the clock and count maintained the the variable count
-	T1CON=0x8030;// initialize timer 1 count = 256 clock pulses
-	TMR1=0; // reset timer count to zero
+
 
 
 }
@@ -1194,7 +1210,7 @@ static void InitAppConfig(void)
 	
 	while(1)
 	{
-
+		
 		// Start out zeroing all AppConfig bytes to ensure all fields are 
 		// deterministic for checksum generation
 		memset((void*)&AppConfig, 0x00, sizeof(AppConfig));
@@ -1417,17 +1433,25 @@ void SaveAppConfig(const APP_CONFIG *ptrAppConfig)
 #if defined(myADC)
 void ADCInit()
 {
-	AD1CON1=0;
-	AD1CSSL = 0;
+//	AD1CON1=0;
+//	AD1CSSL = 0;
 			//000  Vr+=Vdd  Vr-=Vss 
-	AD1CON2=0;
+//	AD1CON2=0;
 
 	// Select the analog conversion clock to match desired data rate with processor clock=00000000=Tcy
 
 	// Select the appropriate sample/conversion sequence 
 	
 	
-	AD1CON3=0x0002;
+//	AD1CON3=0x0002;
+AD1CON1bits.ADON=0;
+AD1CON1 = 0x00E0; // SSRC<2:0> = 111 implies internal counter ends sampling
+// and starts converting.
+// Connect AN12 as S/H input.
+// in this example AN12 is the input
+AD1CSSL = 0;
+AD1CON3 = 0x1F02; // Sample time = 31Tad, Tad = 3Tcy
+AD1CON2 = 0;
 
 	AD1CON1bits.ADON=1; //TURNING ON A/D MODULE
 }
@@ -1441,25 +1465,27 @@ void SelectChannel(unsigned int I)
 
 float convert()
 {
-	float k = (ADC1BUF0<<6) >> 6; // trim the leading 6bits
-	k=(k*5.0)/1024.0;
+	int adc;
+	adc=ADC1BUF0;
+	adc=adc&(0x03ff); // trim the leading 6bits
+	float k=(adc*3.36)/1024.0;
 	return k;
 }
 
 float ReadADCData() // converted value in voltage
 {
 		AD1CON1bits.SAMP=1; // enable=1 FOR SAMPLING
-		DelayMs(10);
-		AD1CON1bits.SAMP=0;
+		//DelayMs(10);
+		//AD1CON1bits.SAMP=0;
 		while(AD1CON1bits.DONE==0);
 		float t=convert();
-		AD1CON1bits.DONE=0;
+		//AD1CON1bits.DONE=0;
 		return(t);
 }
 
 void digit(int a)
 {
-	temp[s]=48+a;
+	temp[s]=(char)(a+48);
 	s++;
 }
 
