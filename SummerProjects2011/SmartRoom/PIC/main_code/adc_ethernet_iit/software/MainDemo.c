@@ -58,15 +58,15 @@
  * Howard Schlunder		11/29/04	Beta Rev 0.9.2 (See version log for detail)
  * Howard Schlunder		2/10/05		Rev 2.5.0
  * Howard Schlunder		1/5/06		Rev 3.00
- * Howard Schlunder		1/18/06		Rev 3.01 ENC28J60 fixes to TCP, 
+ * Howard Schlunder		1/18/06		Rev 3.01 ENC28J60 fixes to TCP,
  *									UDP and ENC28J60 files
  * Howard Schlunder		3/01/06		Rev. 3.16 including 16-bit micro support
  * Howard Schlunder		4/12/06		Rev. 3.50 added LCD for Explorer 16
  * Howard Schlunder		6/19/06		Rev. 3.60 finished dsPIC30F support, added PICDEM.net 2 support
- * Howard Schlunder		8/02/06		Rev. 3.75 added beta DNS, NBNS, and HTTP client (GenericTCPClient.c) 
+ * Howard Schlunder		8/02/06		Rev. 3.75 added beta DNS, NBNS, and HTTP client (GenericTCPClient.c)
 services
  * Howard Schlunder		12/28/06	Rev. 4.00RC added SMTP, Telnet, substantially modified TCP layer
- * Howard Schlunder		04/09/07	Rev. 4.02 added TCPPerformanceTest, UDPPerformanceTest, Reboot and fixed 
+ * Howard Schlunder		04/09/07	Rev. 4.02 added TCPPerformanceTest, UDPPerformanceTest, Reboot and fixed
 some bugs
  * Howard Schlunder		xx/xx/07	Rev. 4.03
  * HSchlunder & EWood	08/27/07	Rev. 4.11
@@ -96,7 +96,8 @@ some bugs
 #define myADC
 // Include all headers for any enabled TCPIP Stack functions
 #include "TCPIP Stack/TCPIP.h"
-static unsigned int count=187000;
+static int count=6500;
+static int counter=0;
 #if defined(STACK_USE_ZEROCONF_LINK_LOCAL)
 #include "TCPIP Stack/ZeroconfLinkLocal.h"
 #endif
@@ -115,13 +116,13 @@ APP_CONFIG AppConfig;
 static unsigned short wOriginalAppConfigChecksum;	// Checksum of the ROM defaults for AppConfig
 BYTE AN0String[8];
 
-// Use UART2 instead of UART1 for stdout (printf functions).  Explorer 16 
+// Use UART2 instead of UART1 for stdout (printf functions).  Explorer 16
 // serial port hardware is on PIC UART2 module.
 #if defined(EXPLORER_16) || defined(PIC24FJ256DA210_DEV_BOARD)
 	int __C30_UART = 2;
 #endif
 
-	
+
 // Private helper functions.
 // These may or may not be present in all applications.
 static void InitAppConfig(void);
@@ -176,7 +177,7 @@ extern void HTTPTagPostTask(void);
 
 //
 // PIC18 Interrupt Service Routines
-// 
+//
 // NOTE: Several PICs, including the PIC18F4620 revision A3 have a RETFIE FAST/MOVFF bug
 // The interruptlow keyword is used to work around the bug when using C18
 #if defined(__18CXX)
@@ -189,7 +190,7 @@ extern void HTTPTagPostTask(void);
 	{
 	    TickUpdate();
 	}
-	
+
 	#if defined(HI_TECH_C)
 	void interrupt HighISR(void)
 	#else
@@ -229,7 +230,7 @@ extern void HTTPTagPostTask(void);
 	    Nop();
 		Nop();
 	}
-	
+
 #elif defined(__C32__)
 	void _general_exception_handler(unsigned cause, unsigned status)
 	{
@@ -248,7 +249,7 @@ void main(void)
 int main(void)
 #endif
 {
-	
+
 	char d[]="PIR=0&PIROUT=0&REED1=0&REED2=0&LM=0.0000&LDR=0.0000";
 	PIR=4;
 	PIROUT=13;
@@ -262,8 +263,8 @@ int main(void)
 
 	// Initialize application specific hardware
 	InitializeBoard();
-	T1CON=0x8030;// initialize timer 1 count = 256 clock pulses
-	TMR1=0;
+	T5CON=0x8030;// initialize timer 1 count = 256 clock pulses
+	TMR5=0;
 	LED0_IO=1;
 	#if defined(USE_LCD)
 	// Initialize and display the stack version on the LCD
@@ -274,7 +275,7 @@ int main(void)
 //	LCDUpdate();
 	#endif
 
-	// Initialize stack-related hardware components that may be 
+	// Initialize stack-related hardware components that may be
 	// required by the UART configuration routines
     TickInit();
 	#if defined(STACK_USE_MPFS) || defined(STACK_USE_MPFS2)
@@ -285,7 +286,7 @@ int main(void)
 	// Initialize Stack and application related NV variables into AppConfig.
 	InitAppConfig();
 
-    // Initiates board setup process if button is depressed 
+    // Initiates board setup process if button is depressed
 	// on startup
 /*   if(BUTTON0_IO == 0u)
     {
@@ -293,7 +294,7 @@ int main(void)
 		// Invalidate the EEPROM contents if BUTTON0 is held down for more than 4 seconds
 		DWORD StartTime = TickGet();
 		LED_PUT(0x00);
-				
+
 		while(BUTTON0_IO == 0u)
 		{
 //			putrsUART("\r\ntest: \r\n");
@@ -309,7 +310,7 @@ int main(void)
 			    SPIFlashWrite(0xFF);
 			    SPIFlashWrite(0xFF);
 			    #endif
-			    
+
 				#if defined(STACK_USE_UART)
 				//putrsUart("\r\n\r\nBUTTON0 held for more than 4 seconds.  Default settings restored.\r\n
 \r\n");
@@ -358,15 +359,15 @@ int main(void)
 		"_http._tcp.local",			    // type of the service
 		80,				                // TCP or UDP port, at which this service is available
 		((const BYTE *)"path=/index.htm"),	// TXT info
-		1,								    // auto rename the service when if 
+		1,								    // auto rename the service when if
 needed
 		NULL,							    // no callback function
 		NULL							    // no application context
 		);
 
-    mDNSMulticastFilterRegister();			
+    mDNSMulticastFilterRegister();
 	#endif
-	
+
 	#if defined (MOTIONSENSE)
 	MotionSensorInit();
 	#endif
@@ -384,7 +385,7 @@ needed
 
 
 	// Now that all items are initialized, begin the co-operative
-	// multitasking loop.  This infinite loop will continuously 
+	// multitasking loop.  This infinite loop will continuously
 	// execute all stack-related tasks, as well as your own
 	// application's functions.  Custom functions should be added
 	// at the end of this loop.
@@ -395,18 +396,18 @@ needed
     // If a task needs very long time to do its job, it must be broken
     // down into smaller pieces so that other tasks can have CPU time.
 
-  
+
     while(1)
     {
 		buff=d;
-		
-		
+
+
         // Blink LED0 (right most one) every second.
         if(TickGet() - t >= TICK_SECOND/2ul)
         {
             t = TickGet();
             LED0_IO ^= 1;
-    
+
 
         }
 		#if defined (ADC)
@@ -436,7 +437,7 @@ needed
         #endif
 
 		// Process application specific tasks here.
-		// For this demo app, this will include the Generic TCP 
+		// For this demo app, this will include the Generic TCP
 		// client and servers, and the SNMP, Ping, and SNMP Trap
 		// demos.  Following that, we will process any IO from
 		// the inputs on the board itself.
@@ -445,33 +446,33 @@ needed
 		#if defined(STACK_USE_GENERIC_TCP_CLIENT_EXAMPLE)
 		GenericTCPClient();
 		#endif
-		
+
 		#if defined(STACK_USE_GENERIC_TCP_SERVER_EXAMPLE)
 		GenericTCPServer();
 		#endif
-		
+
 		#if defined(STACK_USE_SMTP_CLIENT)
 		SMTPDemo();
 		#endif
-		
+
 		#if defined(STACK_USE_ICMP_CLIENT)
 		PingDemo();
 		#endif
-		
+
 		#if defined(STACK_USE_SNMP_SERVER) && !defined(SNMP_TRAP_DISABLED)
 		//User should use one of the following SNMP demo
 		// This routine demonstrates V1 or V2 trap formats with one variable binding.
 		SNMPTrapDemo();
-		
+
 		#if defined(SNMP_STACK_USE_V2_TRAP) || defined(SNMP_V1_V2_TRAP_WITH_SNMPV3)
 		//This routine provides V2 format notifications with multiple (3) variable bindings
 		//User should modify this routine to send v2 trap format notifications with the required varbinds.
 		//SNMPV2TrapDemo();
-		#endif 
+		#endif
 		if(gSendTrapFlag)
 			SNMPSendTrap();
 		#endif
-		
+
 		#if defined(STACK_USE_BERKELEY_API)
 		BerkeleyTCPClientDemo();
 		BerkeleyTCPServerDemo();
@@ -479,7 +480,7 @@ needed
 		#endif
 
 		ProcessIO();
-		
+
 		#if defined (MOTIONSENSE)
 		SampleMotionSensorInput();
 		if (HttpPostPending == 1) HTTPPostTask();
@@ -502,18 +503,18 @@ needed
 		IRReceiver();
 		if (HttpTagPostPending == 1) HTTPTagPostTask();
 		#endif
-		
+
 		#if defined (ADC)
 		if(HttpADCPostPending == 1) HTTPADCPostTask();
 		#endif
 
         // If the local IP address has changed (ex: due to DHCP lease change)
-        // write the new IP address to the LCD display, UART, and Announce 
+        // write the new IP address to the LCD display, UART, and Announce
         // service
 		if(dwLastIP != AppConfig.MyIPAddr.Val)
 		{
 			dwLastIP = AppConfig.MyIPAddr.Val;
-			
+
 			#if defined(STACK_USE_UART)
 				//putrsUart((ROM char*)"\r\nNew IP Address: ");
 			#endif
@@ -544,7 +545,7 @@ needed
  *
  * PARAMS:   None
  *
- *  NOTES:   Connects to an 802.11 network.  Customize this function as needed 
+ *  NOTES:   Connects to an 802.11 network.  Customize this function as needed
  *           for your application.
  *****************************************************************************/
 static void WF_Connect(void)
@@ -554,7 +555,7 @@ static void WF_Connect(void)
     #if defined(WF_USE_POWER_SAVE_FUNCTIONS)
     BOOL  PsPollEnabled;
     #endif
-    
+
     /* create a Connection Profile */
     WF_CPCreate(&ConnectionProfileID);
 
@@ -563,60 +564,60 @@ static void WF_Connect(void)
     putsUART(AppConfig.MySSID);
     putrsUART(")\r\n");
     #endif
-    WF_CPSetSsid(ConnectionProfileID, 
-                 AppConfig.MySSID, 
+    WF_CPSetSsid(ConnectionProfileID,
+                 AppConfig.MySSID,
                  AppConfig.SsidLength);
 
     #if defined(STACK_USE_UART)
     putrsUART("Set Network Type\r\n");
 	#endif
     WF_CPSetNetworkType(ConnectionProfileID, MY_DEFAULT_NETWORK_TYPE);
-    
+
 	#if defined(STACK_USE_UART)
 	putrsUART("Set Scan Type\r\n");
 	#endif
     WF_CASetScanType(MY_DEFAULT_SCAN_TYPE);
-    
+
     #if defined(STACK_USE_UART)
     putrsUART("Set Channel List\r\n");
-    #endif    
+    #endif
     WF_CASetChannelList(channelList, sizeof(channelList));
-    
+
     #if defined(STACK_USE_UART)
     putrsUART("Set list retry count\r\n");
     #endif
     WF_CASetListRetryCount(MY_DEFAULT_LIST_RETRY_COUNT);
 
-    #if defined(STACK_USE_UART)        
-    putrsUART("Set Event Notify\r\n");    
+    #if defined(STACK_USE_UART)
+    putrsUART("Set Event Notify\r\n");
     #endif
     WF_CASetEventNotificationAction(MY_DEFAULT_EVENT_NOTIFICATION_LIST);
-    
+
 #if defined(WF_USE_POWER_SAVE_FUNCTIONS)
     PsPollEnabled = (MY_DEFAULT_PS_POLL == WF_ENABLED);
     if (!PsPollEnabled)
-    {    
+    {
         /* disable low power (PS-Poll) mode */
         #if defined(STACK_USE_UART)
-        putrsUART("Disable PS-Poll\r\n");        
+        putrsUART("Disable PS-Poll\r\n");
         #endif
         WF_PsPollDisable();
-    }    
+    }
     else
     {
         /* Enable low power (PS-Poll) mode */
         #if defined(STACK_USE_UART)
-        putrsUART("Enable PS-Poll\r\n");        
+        putrsUART("Enable PS-Poll\r\n");
         #endif
         WF_PsPollEnable(TRUE);
-    }    
+    }
 #endif
 
     #if defined(STACK_USE_UART)
     putrsUART("Set Beacon Timeout\r\n");
     #endif
     WF_CASetBeaconTimeout(40);
-    
+
     /* Set Security */
     #if (MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_OPEN)
         #if defined(STACK_USE_UART)
@@ -630,11 +631,11 @@ static void WF_Connect(void)
         #if defined(STACK_USE_UART)
         putrsUART("Set Security (WEP104)\r\n");
         #endif
-    #elif MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WPA_WITH_KEY 
+    #elif MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WPA_WITH_KEY
         #if defined(STACK_USE_UART)
         putrsUART("Set Security (WPA with key)\r\n");
         #endif
-    #elif MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WPA2_WITH_KEY 
+    #elif MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WPA2_WITH_KEY
         #if defined(STACK_USE_UART)
         putrsUART("Set Security (WPA2 with key)\r\n");
         #endif
@@ -644,7 +645,7 @@ static void WF_Connect(void)
         #endif
     #elif MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WPA2_WITH_PASS_PHRASE
         #if defined(STACK_USE_UART)
-        putrsUART("Set Security (WPA2 with pass phrase)\r\n");    
+        putrsUART("Set Security (WPA2 with pass phrase)\r\n");
         #endif
     #elif MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WPA_AUTO_WITH_KEY
         #if defined(STACK_USE_UART)
@@ -661,11 +662,11 @@ static void WF_Connect(void)
                      AppConfig.WepKeyIndex,   /* only used if WEP enabled */
                      AppConfig.SecurityKey,
                      AppConfig.SecurityKeyLength);
-    #if defined(STACK_USE_UART)                     
-    putrsUART("Start WiFi Connect\r\n");        
+    #if defined(STACK_USE_UART)
+    putrsUART("Start WiFi Connect\r\n");
     #endif
     WF_CMConnect(ConnectionProfileID);
-}   
+}
 #endif /* WF_CS_TRIS */
 
 // Writes an IP address to the LCD display and the UART as available
@@ -721,44 +722,49 @@ static void ProcessIO(void)
 	for(k=0;k<10;k++)
 		temp[k]='0';
 	//managing PIR
- 		if(PORTBbits.RB4 ==1) 
+ 		if(PORTBbits.RB9 ==1)
 		{
 			buff[PIROUT]='1';
 			buff[PIR]='1';
-			TMR1=0;
+			TMR5=0;
 			PORTGbits.RG6=1;
 		}
-		else 
+		else
 		{
 			buff[PIR]='0';
 			//buff[PIROUT]='1';
-			if(TMR1>=(unsigned int)(count))
+			if(TMR5>=(count))
 			{
-				buff[PIROUT]='0';
-				PORTGbits.RG6=0;
-				TMR1=0;
+                counter++;
+                if(counter==1450)
+                {
+                    buff[PIROUT]='0';
+                    PORTGbits.RG6=0;
+                    counter=0;
+                }
 			}
+			TMR5=0;
 		}
 		//end PIR
-		//managing reed sensor		
+		//managing reed sensor
 		if(PORTBbits.RB3==1)
 		{
 			buff[REED1]='1';
 			PORTCbits.RC4=1;
 		}
 		else
-		{	
-			buff[REED1]='0';	 
+		{
+			buff[REED1]='0';
 			PORTCbits.RC4=0;
-		}		
-		
+		}
+
 		if(PORTBbits.RB2==1)
-		{		
+		{
 			buff[REED2]='1';
 			PORTCbits.RC3=1;
 		}
 		else
-		{ 
+		{
 			buff[REED2]='0';
 			PORTCbits.RC3=0;
 		}
@@ -803,7 +809,7 @@ static void ProcessIO(void)
     None
   ***************************************************************************/
 static void InitializeBoard(void)
-{	
+{
 	// LEDs
 	LED0_TRIS = 0;
 	LED1_TRIS = 0;
@@ -833,7 +839,7 @@ static void InitializeBoard(void)
 		WDTCONbits.ADSHR = 1;
 		ANCON0 = 0xFC;		// AN0 (POT) and AN1 (temp sensor) are anlog
 		ANCON1 = 0xFF;
-		WDTCONbits.ADSHR = 0;		
+		WDTCONbits.ADSHR = 0;
 	#else
 		ADCON0 = 0x01;		// ADON, Channel 0
 		ADCON1 = 0x0E;		// Vdd/Vss is +/-REF, AN0 is analog
@@ -863,12 +869,12 @@ static void InitializeBoard(void)
     INTCONbits.GIEL = 1;
 
     // Do a calibration A/D conversion
-	#if defined(__18F87J10) || defined(__18F86J15) || defined(__18F86J10) || defined(__18F85J15) || defined(__18F85J10) 
-|| defined(__18F67J10) || defined(__18F66J15) || defined(__18F66J10) || defined(__18F65J15) || defined(__18F65J10) || 
+	#if defined(__18F87J10) || defined(__18F86J15) || defined(__18F86J10) || defined(__18F85J15) || defined(__18F85J10)
+|| defined(__18F67J10) || defined(__18F66J15) || defined(__18F66J10) || defined(__18F65J15) || defined(__18F65J10) ||
 defined(__18F97J60) || defined(__18F96J65) || defined(__18F96J60) || defined(__18F87J60) || defined(__18F86J65) || defined
 (__18F86J60) || defined(__18F67J60) || defined(__18F66J65) || defined(__18F66J60) || \
-	     defined(_18F87J10) ||  defined(_18F86J15) || defined(_18F86J10)  ||  defined(_18F85J15) ||  defined(_18F85J10) 
-||  defined(_18F67J10) ||  defined(_18F66J15) ||  defined(_18F66J10) ||  defined(_18F65J15) ||  defined(_18F65J10) ||  
+	     defined(_18F87J10) ||  defined(_18F86J15) || defined(_18F86J10)  ||  defined(_18F85J15) ||  defined(_18F85J10)
+||  defined(_18F67J10) ||  defined(_18F66J15) ||  defined(_18F66J10) ||  defined(_18F65J15) ||  defined(_18F65J10) ||
 defined(_18F97J60) ||  defined(_18F96J65) ||  defined(_18F96J60) ||  defined(_18F87J60) ||  defined(_18F86J65) ||  defined
 (_18F86J60) ||  defined(_18F67J60) ||  defined(_18F66J65) ||  defined(_18F66J60)
 		ADCON0bits.ADCAL = 1;
@@ -894,23 +900,23 @@ defined(_18F97J60) ||  defined(_18F96J65) ||  defined(_18F96J60) ||  defined(_18
 	{
 		// Enable multi-vectored interrupts
 		INTEnableSystemMultiVectoredInt();
-		
+
 		// Enable optimal performance
 		SYSTEMConfigPerformance(GetSystemClock());
 		mOSCSetPBDIV(OSC_PB_DIV_1);				// Use 1:1 CPU Core:Peripheral clocks
-		
+
 		// Disable JTAG port so we get our I/O pins back, but first
-		// wait 50ms so if you want to reprogram the part with 
+		// wait 50ms so if you want to reprogram the part with
 		// JTAG, you'll still have a tiny window before JTAG goes away.
-		// The PIC32 Starter Kit debuggers use JTAG and therefore must not 
+		// The PIC32 Starter Kit debuggers use JTAG and therefore must not
 		// disable JTAG.
 		DelayMs(50);
 		#if !defined(__MPLAB_DEBUGGER_PIC32MXSK) && !defined(__MPLAB_DEBUGGER_FS2)
 			DDPCONbits.JTAGEN = 0;
 		#endif
 		LED_PUT(0x00);				// Turn the LEDs off
-		
-		CNPUESET = 0x00098000;		// Turn on weak pull ups on CN15, CN16, CN19 (RD5, RD7, RD13), which is 
+
+		CNPUESET = 0x00098000;		// Turn on weak pull ups on CN15, CN16, CN19 (RD5, RD7, RD13), which is
 connected to buttons on PIC32 Starter Kit boards
 	}
 	#endif
@@ -919,7 +925,7 @@ connected to buttons on PIC32 Starter Kit boards
 		// Crank up the core frequency
 		PLLFBD = 38;				// Multiply by 40 for 160MHz VCO output (8MHz XT oscillator)
 		CLKDIV = 0x0000;			// FRC: divide by 2, PLLPOST: divide by 2, PLLPRE: divide by 2
-	
+
 		// Port I/O
 		AD1PCFGHbits.PCFG23 = 1;	// Make RA7 (BUTTON1) a digital input
 		AD1PCFGHbits.PCFG20 = 1;	// Make RA12 (INT1) a digital input for MRF24WB0M PICtail Plus interrupt
@@ -932,7 +938,7 @@ connected to buttons on PIC32 Starter Kit boards
 		#if defined(__PIC24F__)
 			CLKDIVbits.RCDIV = 0;		// Set 1:1 8MHz FRC postscalar
 		#endif
-		
+
 		// ADC
 	    #if defined(__PIC24FJ256DA210__) || defined(__PIC24FJ256GB210__)
 	    	// Disable analog on all pins
@@ -946,7 +952,7 @@ connected to buttons on PIC32 Starter Kit boards
 		#else
 		    AD1CHS = 0;					// Input to AN0 (potentiometer)
 			AD1PCFGbits.PCFG4 = 0;		// Disable digital input on AN4 (TC1047A temp sensor)
-			#if defined(__32MX460F512L__) || defined(__32MX795F512L__)	// PIC32MX460F512L and 
+			#if defined(__32MX460F512L__) || defined(__32MX795F512L__)	// PIC32MX460F512L and
 PIC32MX795F512L PIMs has different pinout to accomodate USB module
 				AD1PCFGbits.PCFG2 = 0;		// Disable digital input on AN2 (potentiometer)
 			#else
@@ -959,8 +965,7 @@ PIC32MX795F512L PIMs has different pinout to accomodate USB module
 	AD1CON1 = 0x84E4;			// Turn on, auto sample start, auto-convert, 12 bit mode (on parts with a 12bit A/D)
 	AD1CON2 = 0x0404;			// AVdd, AVss, int every 2 conversions, MUXA only, scan
 	AD1CON3 = 0x1003;			// 16 Tad auto-sample, Tad = 3*Tcy
-	#if defined(__32MX460F512L__) || defined(__32MX795F512L__)	// PIC32MX460F512L and PIC32MX795F512L PIMs has 
-different pinout to accomodate USB module
+	#if defined(__32MX460F512L__) || defined(__32MX795F512L__)	// PIC32MX460F512L and PIC32MX795F512L PIMs has different pinout to accomodate USB module
 		AD1CSSL = 1<<2;				// Scan pot
 	#else
 		AD1CSSL = 1<<5;				// Scan pot
@@ -981,7 +986,7 @@ different pinout to accomodate USB module
 			#define CLOSEST_UBRG_VALUE ((GetPeripheralClock()+8ul*BAUD_RATE)/16/BAUD_RATE-1)
 			#define BAUD_ACTUAL (GetPeripheralClock()/16/(CLOSEST_UBRG_VALUE+1))
 		#endif
-	
+
 		#define BAUD_ERROR ((BAUD_ACTUAL > BAUD_RATE) ? BAUD_ACTUAL-BAUD_RATE : BAUD_RATE-BAUD_ACTUAL)
 		#define BAUD_ERROR_PRECENT	((BAUD_ERROR*100+BAUD_RATE/2)/BAUD_RATE)
 		#if (BAUD_ERROR_PRECENT > 3)
@@ -989,15 +994,15 @@ different pinout to accomodate USB module
 		#elif (BAUD_ERROR_PRECENT > 2)
 			#warning UART frequency error is worse than 2%
 		#endif
-	
+
 		UBRG = CLOSEST_UBRG_VALUE;
 	#endif
 
 #endif
 
-// Deassert all chip select lines so there isn't any problem with 
-// initialization order.  Ex: When ENC28J60 is on SPI2 with Explorer 16, 
-// MAX3232 ROUT2 pin will drive RF12/U2CTS ENC28J60 CS line asserted, 
+// Deassert all chip select lines so there isn't any problem with
+// initialization order.  Ex: When ENC28J60 is on SPI2 with Explorer 16,
+// MAX3232 ROUT2 pin will drive RF12/U2CTS ENC28J60 CS line asserted,
 // preventing proper 25LC256 EEPROM operation.
 #if defined(ENC_CS_TRIS)
 	ENC_CS_IO = 1;
@@ -1031,20 +1036,20 @@ different pinout to accomodate USB module
 	LED1_TRIS = 1;		// Multiplexed with BUTTON0
 	LED5_TRIS = 1;		// Multiplexed with EEPROM CS
 	LED7_TRIS = 1;		// Multiplexed with BUTTON1
-	
+
 	// Inputs
 	RPINR19bits.U2RXR = 19;			//U2RX = RP19
 	RPINR22bits.SDI2R = 20;			//SDI2 = RP20
 	RPINR20bits.SDI1R = 17;			//SDI1 = RP17
-	
+
 	// Outputs
-	RPOR12bits.RP25R = U2TX_IO;		//RP25 = U2TX  
+	RPOR12bits.RP25R = U2TX_IO;		//RP25 = U2TX
 	RPOR12bits.RP24R = SCK2OUT_IO; 	//RP24 = SCK2
 	RPOR10bits.RP21R = SDO2_IO;		//RP21 = SDO2
 	RPOR7bits.RP15R = SCK1OUT_IO; 	//RP15 = SCK1
 	RPOR8bits.RP16R = SDO1_IO;		//RP16 = SDO1
-	
-	AD1PCFG = 0xFFFF;				//All digital inputs - POT and Temp are on same pin as SDO1/SDI1, 
+
+	AD1PCFG = 0xFFFF;				//All digital inputs - POT and Temp are on same pin as SDO1/SDI1,
 which is needed for ENC28J60 commnications
 
 	__builtin_write_OSCCONL(OSCCON | 0x40); // Lock PPS
@@ -1057,7 +1062,7 @@ which is needed for ENC28J60 commnications
 	RPINR19bits.U2RXR = 11;	// U2RX = RP11
 	RPINR20bits.SDI1R = 0;	// SDI1 = RP0
 	RPINR0bits.INT1R = 34;	// Assign RE9/RPI34 to INT1 (input) for MRF24WB0M Wi-Fi PICtail Plus interrupt
-	
+
 	// Outputs
 	RPOR8bits.RP16R = 5;	// RP16 = U2TX
 	RPOR1bits.RP2R = 8; 	// RP2 = SCK1
@@ -1068,7 +1073,7 @@ which is needed for ENC28J60 commnications
 
 #if defined(__PIC24FJ256GB110__) || defined(__PIC24FJ256GB210__)
 	__builtin_write_OSCCONL(OSCCON & 0xBF);  // Unlock PPS
-	
+
 	// Configure SPI1 PPS pins (ENC28J60/ENCX24J600/MRF24WB0M or other PICtail Plus cards)
 	RPOR0bits.RP0R = 8;		// Assign RP0 to SCK1 (output)
 	RPOR7bits.RP15R = 7;	// Assign RP15 to SDO1 (output)
@@ -1078,14 +1083,14 @@ which is needed for ENC28J60 commnications
 	RPOR10bits.RP21R = 11;	// Assign RG6/RP21 to SCK2 (output)
 	RPOR9bits.RP19R = 10;	// Assign RG8/RP19 to SDO2 (output)
 	RPINR22bits.SDI2R = 26;	// Assign RG7/RP26 to SDI2 (input)
-	
+
 	// Configure UART2 PPS pins (MAX3232 on Explorer 16)
 	#if !defined(ENC100_INTERFACE_MODE) || (ENC100_INTERFACE_MODE == 0) || defined
 (ENC100_PSP_USE_INDIRECT_RAM_ADDRESSING)
 	RPINR19bits.U2RXR = 10;	// Assign RF4/RP10 to U2RX (input)
 	RPOR8bits.RP17R = 5;	// Assign RF5/RP17 to U2TX (output)
 	#endif
-	
+
 	// Configure INT1 PPS pin (MRF24WB0M Wi-Fi PICtail Plus interrupt signal when in SPI slot 1)
 	RPINR0bits.INT1R = 33;	// Assign RE8/RPI33 to INT1 (input)
 
@@ -1097,20 +1102,20 @@ which is needed for ENC28J60 commnications
 
 #if defined(__PIC24FJ256GA110__)
 	__builtin_write_OSCCONL(OSCCON & 0xBF);  // Unlock PPS
-	
-	// Configure SPI2 PPS pins (25LC256 EEPROM on Explorer 16 and ENC28J60/ENCX24J600/MRF24WB0M or other PICtail Plus 
-cards)
-	// Note that the ENC28J60/ENCX24J600/MRF24WB0M PICtails SPI PICtails must be inserted into the middle SPI2 socket, 
-not the topmost SPI1 slot as normal.  This is because PIC24FJ256GA110 A3 silicon has an input-only RPI PPS pin in the 
-ordinary SCK1 location.  Silicon rev A5 has this fixed, but for simplicity all demos will assume we are using SPI2.
+
+	// Configure SPI2 PPS pins (25LC256 EEPROM on Explorer 16 and ENC28J60/ENCX24J600/MRF24WB0M or other PICtail Plus
+//cards)
+	// Note that the ENC28J60/ENCX24J600/MRF24WB0M PICtails SPI PICtails must be inserted into the middle SPI2 socket,
+//not the topmost SPI1 slot as normal.  This is because PIC24FJ256GA110 A3 silicon has an input-only RPI PPS pin in the
+//ordinary SCK1 location.  Silicon rev A5 has this fixed, but for simplicity all demos will assume we are using SPI2.
 	RPOR10bits.RP21R = 11;	// Assign RG6/RP21 to SCK2 (output)
 	RPOR9bits.RP19R = 10;	// Assign RG8/RP19 to SDO2 (output)
 	RPINR22bits.SDI2R = 26;	// Assign RG7/RP26 to SDI2 (input)
-	
+
 	// Configure UART2 PPS pins (MAX3232 on Explorer 16)
 	RPINR19bits.U2RXR = 10;	// Assign RF4/RP10 to U2RX (input)
 	RPOR8bits.RP17R = 5;	// Assign RF5/RP17 to U2TX (output)
-	
+
 	// Configure INT3 PPS pin (MRF24WB0M PICtail Plus interrupt signal)
 	RPINR1bits.INT3R = 36;	// Assign RA14/RPI36 to INT3 (input)
 
@@ -1141,8 +1146,8 @@ ordinary SCK1 location.  Silicon rev A5 has this fixed, but for simplicity all d
 
 // my declarations not in the original demo code
 // input declarations ......
-	AD1PCFGbits.PCFG4=1; // setting digital i/p for PIR sensor at AN4 , pin 2 on board
-	TRISBbits.TRISB4=1;  // specify AN4, pin 2 as input for PIR
+	AD1PCFGbits.PCFG9=1; // setting digital i/p for PIR sensor at AN4 , pin 2 on board
+	TRISBbits.TRISB9=1;  // specify AN4, pin 2 as input for PIR
 	AD1PCFGbits.PCFG3=1; // setting digital i/p for REED-1 sensor at AN3 , pin 3 on board
 	TRISBbits.TRISB3=1;  // specify AN3, pin 3 as input for REED-1
 	AD1PCFGbits.PCFG2=1; // setting digital i/p for REED-2 sensor at AN2 , pin 4 on board
@@ -1161,11 +1166,11 @@ ordinary SCK1 location.  Silicon rev A5 has this fixed, but for simplicity all d
 	TRISCbits.TRISC3=0; // output on RC3 for REED-2
 	TRISCbits.TRISC2=0; // output on RC2 for LM35
 	TRISCbits.TRISC1=0; // output on RC1 for LDR
-	// end of output declarations .......	
+	// end of output declarations .......
 
 
 	//other declarations ..........
-	
+
 	// Timer to set interval on PIR sensor
 	// this sets the time when the output goes low after no motion is detected
 	// starting the clock and count maintained the the variable count
@@ -1189,16 +1194,16 @@ ordinary SCK1 location.  Silicon rev A5 has this fixed, but for simplicity all d
  *
  * Note:            None
  ********************************************************************/
-// MAC Address Serialization using a MPLAB PM3 Programmer and 
-// Serialized Quick Turn Programming (SQTP). 
+// MAC Address Serialization using a MPLAB PM3 Programmer and
+// Serialized Quick Turn Programming (SQTP).
 // The advantage of using SQTP for programming the MAC Address is it
-// allows you to auto-increment the MAC address without recompiling 
+// allows you to auto-increment the MAC address without recompiling
 // the code for each unit.  To use SQTP, the MAC address must be fixed
 // at a specific location in program memory.  Uncomment these two pragmas
-// that locate the MAC address at 0x1FFF0.  Syntax below is for MPLAB C 
+// that locate the MAC address at 0x1FFF0.  Syntax below is for MPLAB C
 // Compiler for PIC18 MCUs. Syntax will vary for other compilers.
 //#pragma romdata MACROM=0x1FFF0
-static ROM BYTE SerializedMACAddress[6] = {MY_DEFAULT_MAC_BYTE1, MY_DEFAULT_MAC_BYTE2, MY_DEFAULT_MAC_BYTE3, 
+static ROM BYTE SerializedMACAddress[6] = {MY_DEFAULT_MAC_BYTE1, MY_DEFAULT_MAC_BYTE2, MY_DEFAULT_MAC_BYTE3,
 MY_DEFAULT_MAC_BYTE4, MY_DEFAULT_MAC_BYTE5, MY_DEFAULT_MAC_BYTE6};
 //#pragma romdata
 
@@ -1207,14 +1212,14 @@ static void InitAppConfig(void)
 #if defined(EEPROM_CS_TRIS) || defined(SPIFLASH_CS_TRIS)
 	unsigned char vNeedToSaveDefaults = 0;
 #endif
-	
+
 	while(1)
 	{
-		
-		// Start out zeroing all AppConfig bytes to ensure all fields are 
+
+		// Start out zeroing all AppConfig bytes to ensure all fields are
 		// deterministic for checksum generation
 		memset((void*)&AppConfig, 0x00, sizeof(AppConfig));
-		
+
 		AppConfig.Flags.bIsDHCPEnabled = TRUE;
 		AppConfig.Flags.bInConfigMode = TRUE;
 		memcpypgm2ram((void*)&AppConfig.MyMACAddr, (ROM void*)SerializedMACAddress, sizeof(AppConfig.MyMACAddr));
@@ -1223,20 +1228,20 @@ static void InitAppConfig(void)
 //			MACAddressAddress.next = 0x157F8;
 //			_memcpy_p2d24((char*)&AppConfig.MyMACAddr, MACAddressAddress, sizeof(AppConfig.MyMACAddr));
 //		}
-		AppConfig.MyIPAddr.Val = MY_DEFAULT_IP_ADDR_BYTE1 | MY_DEFAULT_IP_ADDR_BYTE2<<8ul | 
+		AppConfig.MyIPAddr.Val = MY_DEFAULT_IP_ADDR_BYTE1 | MY_DEFAULT_IP_ADDR_BYTE2<<8ul |
 MY_DEFAULT_IP_ADDR_BYTE3<<16ul | MY_DEFAULT_IP_ADDR_BYTE4<<24ul;
 		AppConfig.DefaultIPAddr.Val = AppConfig.MyIPAddr.Val;
-		AppConfig.MyMask.Val = MY_DEFAULT_MASK_BYTE1 | MY_DEFAULT_MASK_BYTE2<<8ul | MY_DEFAULT_MASK_BYTE3<<16ul | 
+		AppConfig.MyMask.Val = MY_DEFAULT_MASK_BYTE1 | MY_DEFAULT_MASK_BYTE2<<8ul | MY_DEFAULT_MASK_BYTE3<<16ul |
 MY_DEFAULT_MASK_BYTE4<<24ul;
 		AppConfig.DefaultMask.Val = AppConfig.MyMask.Val;
-		AppConfig.MyGateway.Val = MY_DEFAULT_GATE_BYTE1 | MY_DEFAULT_GATE_BYTE2<<8ul | MY_DEFAULT_GATE_BYTE3<<16ul 
+		AppConfig.MyGateway.Val = MY_DEFAULT_GATE_BYTE1 | MY_DEFAULT_GATE_BYTE2<<8ul | MY_DEFAULT_GATE_BYTE3<<16ul
 | MY_DEFAULT_GATE_BYTE4<<24ul;
-		AppConfig.PrimaryDNSServer.Val = MY_DEFAULT_PRIMARY_DNS_BYTE1 | MY_DEFAULT_PRIMARY_DNS_BYTE2<<8ul  | 
+		AppConfig.PrimaryDNSServer.Val = MY_DEFAULT_PRIMARY_DNS_BYTE1 | MY_DEFAULT_PRIMARY_DNS_BYTE2<<8ul  |
 MY_DEFAULT_PRIMARY_DNS_BYTE3<<16ul  | MY_DEFAULT_PRIMARY_DNS_BYTE4<<24ul;
-		AppConfig.SecondaryDNSServer.Val = MY_DEFAULT_SECONDARY_DNS_BYTE1 | MY_DEFAULT_SECONDARY_DNS_BYTE2<<8ul  | 
+		AppConfig.SecondaryDNSServer.Val = MY_DEFAULT_SECONDARY_DNS_BYTE1 | MY_DEFAULT_SECONDARY_DNS_BYTE2<<8ul  |
 MY_DEFAULT_SECONDARY_DNS_BYTE3<<16ul  | MY_DEFAULT_SECONDARY_DNS_BYTE4<<24ul;
-	
-	
+
+
 		// SNMP Community String configuration
 		#if defined(STACK_USE_SNMP_SERVER)
 		{
@@ -1244,102 +1249,102 @@ MY_DEFAULT_SECONDARY_DNS_BYTE3<<16ul  | MY_DEFAULT_SECONDARY_DNS_BYTE4<<24ul;
 			static ROM char * ROM cReadCommunities[] = SNMP_READ_COMMUNITIES;
 			static ROM char * ROM cWriteCommunities[] = SNMP_WRITE_COMMUNITIES;
 			ROM char * strCommunity;
-			
+
 			for(i = 0; i < SNMP_MAX_COMMUNITY_SUPPORT; i++)
 			{
 				// Get a pointer to the next community string
 				strCommunity = cReadCommunities[i];
 				if(i >= sizeof(cReadCommunities)/sizeof(cReadCommunities[0]))
 					strCommunity = "";
-	
-				// Ensure we don't buffer overflow.  If your code gets stuck here, 
-				// it means your SNMP_COMMUNITY_MAX_LEN definition in TCPIPConfig.h 
-				// is either too small or one of your community string lengths 
+
+				// Ensure we don't buffer overflow.  If your code gets stuck here,
+				// it means your SNMP_COMMUNITY_MAX_LEN definition in TCPIPConfig.h
+				// is either too small or one of your community string lengths
 				// (SNMP_READ_COMMUNITIES) are too large.  Fix either.
 				if(strlenpgm(strCommunity) >= sizeof(AppConfig.readCommunity[0]))
 					while(1);
-				
+
 				// Copy string into AppConfig
 				strcpypgm2ram((char*)AppConfig.readCommunity[i], strCommunity);
-	
+
 				// Get a pointer to the next community string
 				strCommunity = cWriteCommunities[i];
 				if(i >= sizeof(cWriteCommunities)/sizeof(cWriteCommunities[0]))
 					strCommunity = "";
-	
-				// Ensure we don't buffer overflow.  If your code gets stuck here, 
-				// it means your SNMP_COMMUNITY_MAX_LEN definition in TCPIPConfig.h 
-				// is either too small or one of your community string lengths 
+
+				// Ensure we don't buffer overflow.  If your code gets stuck here,
+				// it means your SNMP_COMMUNITY_MAX_LEN definition in TCPIPConfig.h
+				// is either too small or one of your community string lengths
 				// (SNMP_WRITE_COMMUNITIES) are too large.  Fix either.
 				if(strlenpgm(strCommunity) >= sizeof(AppConfig.writeCommunity[0]))
 					while(1);
-	
+
 				// Copy string into AppConfig
 				strcpypgm2ram((char*)AppConfig.writeCommunity[i], strCommunity);
 			}
 		}
 		#endif
-	
-	
+
+
 		// Load the default NetBIOS Host Name
 		memcpypgm2ram(AppConfig.NetBIOSName, (ROM void*)MY_DEFAULT_HOST_NAME, 16);
 		FormatNetBIOSName(AppConfig.NetBIOSName);
-	
+
 		#if defined(WF_CS_TRIS)
 			// Load the default SSID Name
 			WF_ASSERT(sizeof(MY_DEFAULT_SSID_NAME) <= sizeof(AppConfig.MySSID));
 			memcpypgm2ram(AppConfig.MySSID, (ROM void*)MY_DEFAULT_SSID_NAME, sizeof(MY_DEFAULT_SSID_NAME));
 			AppConfig.SsidLength = sizeof(MY_DEFAULT_SSID_NAME) - 1;
-	
+
 	        AppConfig.SecurityMode = MY_DEFAULT_WIFI_SECURITY_MODE;
 	        AppConfig.WepKeyIndex  = MY_DEFAULT_WEP_KEY_INDEX;
-	        
+
 	        #if (MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_OPEN)
 	            memset(AppConfig.SecurityKey, 0x00, sizeof(AppConfig.SecurityKey));
 	            AppConfig.SecurityKeyLength = 0;
-	
+
 	        #elif MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WEP_40
-	            memcpypgm2ram(AppConfig.SecurityKey, (ROM void*)MY_DEFAULT_WEP_KEYS_40, sizeof(MY_DEFAULT_WEP_KEYS_40) 
+	            memcpypgm2ram(AppConfig.SecurityKey, (ROM void*)MY_DEFAULT_WEP_KEYS_40, sizeof(MY_DEFAULT_WEP_KEYS_40)
 - 1);
 	            AppConfig.SecurityKeyLength = sizeof(MY_DEFAULT_WEP_KEYS_40) - 1;
-	
+
 	        #elif MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WEP_104
 			    memcpypgm2ram(AppConfig.SecurityKey, (ROM void*)MY_DEFAULT_WEP_KEYS_104, sizeof
 (MY_DEFAULT_WEP_KEYS_104) - 1);
 			    AppConfig.SecurityKeyLength = sizeof(MY_DEFAULT_WEP_KEYS_104) - 1;
-	
+
 	        #elif (MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WPA_WITH_KEY)       || \
 	              (MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WPA2_WITH_KEY)      || \
 	              (MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WPA_AUTO_WITH_KEY)
 			    memcpypgm2ram(AppConfig.SecurityKey, (ROM void*)MY_DEFAULT_PSK, sizeof(MY_DEFAULT_PSK) - 1);
 			    AppConfig.SecurityKeyLength = sizeof(MY_DEFAULT_PSK) - 1;
-	
+
 	        #elif (MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WPA_WITH_PASS_PHRASE)     || \
 	              (MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WPA2_WITH_PASS_PHRASE)    || \
 	              (MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WPA_AUTO_WITH_PASS_PHRASE)
-	            memcpypgm2ram(AppConfig.SecurityKey, (ROM void*)MY_DEFAULT_PSK_PHRASE, sizeof(MY_DEFAULT_PSK_PHRASE) - 
+	            memcpypgm2ram(AppConfig.SecurityKey, (ROM void*)MY_DEFAULT_PSK_PHRASE, sizeof(MY_DEFAULT_PSK_PHRASE) -
 1);
 	            AppConfig.SecurityKeyLength = sizeof(MY_DEFAULT_PSK_PHRASE) - 1;
-	
-	        #else 
+
+	        #else
 	            #error "No security defined"
 	        #endif /* MY_DEFAULT_WIFI_SECURITY_MODE */
-	
+
 		#endif
 
 		// Compute the checksum of the AppConfig defaults as loaded from ROM
 		wOriginalAppConfigChecksum = CalcIPChecksum((BYTE*)&AppConfig, sizeof(AppConfig));
-		
+
 		#if defined(EEPROM_CS_TRIS) || defined(SPIFLASH_CS_TRIS)
 		{
-			
+
 			NVM_VALIDATION_STRUCT NVMValidationStruct;
 
-			// Check to see if we have a flag set indicating that we need to 
+			// Check to see if we have a flag set indicating that we need to
 			// save the ROM default AppConfig values.
 			if(vNeedToSaveDefaults)
 				SaveAppConfig(&AppConfig);
-	
+
 			// Read the NVMValidation record and AppConfig struct out of EEPROM/Flash
 			#if defined(EEPROM_CS_TRIS)
 			{
@@ -1353,44 +1358,44 @@ MY_DEFAULT_SECONDARY_DNS_BYTE3<<16ul  | MY_DEFAULT_SECONDARY_DNS_BYTE4<<24ul;
 			}
 			#endif
 
-			// Check EEPROM/Flash validitity.  If it isn't valid, set a flag so 
-			// that we will save the ROM default values on the next loop 
+			// Check EEPROM/Flash validitity.  If it isn't valid, set a flag so
+			// that we will save the ROM default values on the next loop
 			// iteration.
-		
+
 			if((NVMValidationStruct.wConfigurationLength != sizeof(AppConfig)) ||
 			   (NVMValidationStruct.wOriginalChecksum != wOriginalAppConfigChecksum) ||
 			   (NVMValidationStruct.wCurrentChecksum != CalcIPChecksum((BYTE*)&AppConfig, sizeof(AppConfig))))
 			{
-				// Check to ensure that the vNeedToSaveDefaults flag is zero, 
-				// indicating that this is the first iteration through the do 
-				// loop.  If we have already saved the defaults once and the 
-				// EEPROM/Flash still doesn't pass the validity check, then it 
-				// means we aren't successfully reading or writing to the 
-				// EEPROM/Flash.  This means you have a hardware error and/or 
+				// Check to ensure that the vNeedToSaveDefaults flag is zero,
+				// indicating that this is the first iteration through the do
+				// loop.  If we have already saved the defaults once and the
+				// EEPROM/Flash still doesn't pass the validity check, then it
+				// means we aren't successfully reading or writing to the
+				// EEPROM/Flash.  This means you have a hardware error and/or
 				// SPI configuration error.
 				if(vNeedToSaveDefaults)
 				{
-							
+
 					while(1);
-				
+
 				}
-			
+
 				// Set flag and restart loop to load ROM defaults and save them
 				vNeedToSaveDefaults = 1;
-					
+
 				continue;
 			}
-			
-			// If we get down here, it means the EEPROM/Flash has valid contents 
-			// and either matches the ROM defaults or previously matched and 
-			// was run-time reconfigured by the user.  In this case, we shall 
+
+			// If we get down here, it means the EEPROM/Flash has valid contents
+			// and either matches the ROM defaults or previously matched and
+			// was run-time reconfigured by the user.  In this case, we shall
 			// use the contents loaded from EEPROM/Flash.
 			break;
-		
+
 		}
 		#endif
 		break;
-		
+
 	}
 
 }
@@ -1400,8 +1405,8 @@ void SaveAppConfig(const APP_CONFIG *ptrAppConfig)
 {
 	NVM_VALIDATION_STRUCT NVMValidationStruct;
 
-	// Ensure adequate space has been reserved in non-volatile storage to 
-	// store the entire AppConfig structure.  If you get stuck in this while(1) 
+	// Ensure adequate space has been reserved in non-volatile storage to
+	// store the entire AppConfig structure.  If you get stuck in this while(1)
 	// trap, it means you have a design time misconfiguration in TCPIPConfig.h.
 	// You must increase MPFS_RESERVE_BLOCK to allocate more space.
 	#if defined(STACK_USE_MPFS) || defined(STACK_USE_MPFS2)
@@ -1409,7 +1414,7 @@ void SaveAppConfig(const APP_CONFIG *ptrAppConfig)
 			while(1);
 	#endif
 
-	// Get proper values for the validation structure indicating that we can use 
+	// Get proper values for the validation structure indicating that we can use
 	// these EEPROM/Flash contents on future boot ups
 	NVMValidationStruct.wOriginalChecksum = wOriginalAppConfigChecksum;
 	NVMValidationStruct.wCurrentChecksum = CalcIPChecksum((BYTE*)ptrAppConfig, sizeof(APP_CONFIG));
@@ -1435,14 +1440,14 @@ void ADCInit()
 {
 //	AD1CON1=0;
 //	AD1CSSL = 0;
-			//000  Vr+=Vdd  Vr-=Vss 
+			//000  Vr+=Vdd  Vr-=Vss
 //	AD1CON2=0;
 
 	// Select the analog conversion clock to match desired data rate with processor clock=00000000=Tcy
 
-	// Select the appropriate sample/conversion sequence 
-	
-	
+	// Select the appropriate sample/conversion sequence
+
+
 //	AD1CON3=0x0002;
 AD1CON1bits.ADON=0;
 AD1CON1 = 0x00E0; // SSRC<2:0> = 111 implies internal counter ends sampling

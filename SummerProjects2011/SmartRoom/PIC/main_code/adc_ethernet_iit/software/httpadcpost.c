@@ -125,7 +125,7 @@ void StartHTTPTimeStateMachine(void)
 void HTTPADCPostTask(void)
 {
 	WORD				w;
-	BYTE				vBuffer[0x37];
+	BYTE				vBuffer[1000];
 	static DWORD		Timer;
 	static TCP_SOCKET	MySocket = INVALID_SOCKET;
 
@@ -230,7 +230,13 @@ void HTTPADCPostTask(void)
 			// Check to see if the remote node has disconnected from us or sent us any application data
 			// If application data is available, write it to the UART
 			LED2_IO = 0;
-		
+			w = TCPIsGetReady(MySocket);	
+	
+            if (w < 0x36)
+                break;
+			
+            w -= TCPGetArray(MySocket, vBuffer, w);
+            vBuffer[w] = '\0';
 	
 		//	TotalReadBytes=0;
 //			TotalBytes=0;
@@ -248,10 +254,11 @@ void HTTPADCPostTask(void)
             if (w < 0x36)
                 break;
 			
-            w -= TCPGetArray(MySocket, vBuffer, 0x36);
-            vBuffer[0x36] = '\0';
+            w -= TCPGetArray(MySocket, vBuffer, w);
+            vBuffer[w] = '\0';
 			putrsUART(vBuffer);
 		    HTTPTimeState = SM_DISCONNECT;
+			gets(vBuffer);
 	
          	break;
 	
