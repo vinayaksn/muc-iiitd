@@ -128,53 +128,56 @@ BYTE AN0String[8];
 static void InitAppConfig(void);
 static void InitializeBoard(void);
 static void ProcessIO(void);
+
+
 #if defined(WF_CS_TRIS)
     static void WF_Connect(void);
 #endif
 
+
 #if defined (MOTIONSENSE)
-extern void MotionSensorInit();
-extern void SampleMotionSensorInput();
-extern void HTTPPostTask(void);
-extern BYTE HttpPostPending;
+	extern void MotionSensorInit();
+	extern void SampleMotionSensorInput();
+	extern void HTTPPostTask(void);
+	extern BYTE HttpPostPending;
 #endif
+
 
 #if defined (myADC)
-char override[10];
-static int chk=0;
-//#define ADC_SAMPLE_TIME TICK_MINUTE*10
-#define ADC_SAMPLE_TIME TICK_SECOND*10
-DWORD ADCLoadTime=0;
-extern void IRTxRxInit();
-void WriteADCData();
-extern unsigned char HttpADCPostPending;
-extern void HTTPADCPostTask(void);
-extern void ADCInit();
-//extern void WriteADCData();
-extern void SelectChannel(unsigned int);
-extern float convert();
-extern float ReadADCData();
-extern void TCPRecvTask(void);
-int PIR,REED1,REED2,LM,LDR,PIROUT;
-char temp[10];
-char *buff;
-int s;
-void number2(float,int);
+	char override[10];
+	DWORD ADCLoadTime=0;
+	int PIR,REED1,REED2,LM,LDR,PIROUT;
+	char temp[10];
+	char* buff;
+	double s;
+	//#define ADC_SAMPLE_TIME TICK_SECOND*10
+	//extern void WriteADCbuff();
+	extern void IRTxRxInit();
+	extern unsigned char HttpADCPostPending;
+	extern void HTTPADCPostTask(void);
+	extern void ADCInit();
+	extern void SelectChannel(unsigned int);
+	void number2(float,int);
+	double convert();
+	double ReadADCData();
+	extern void TCPRecvTask(void);
 #endif
 
+
+
 #if defined (IRREADER)
-extern void IRTxRxInit();
-//extern void IRTransmitter();
-extern void IRReceiver();
-//extern unsigned char IRTxTrigger;
-extern unsigned char IRRxTrigger;
-//extern DWORD LastTxTriggerTimer;
-//extern unsigned char IRTxStartTransmit;
-//extern unsigned char IRTxStateMachine;
-//extern DWORD LastTxTimer;
-//#define IRTXSTARTBIT 0
-extern unsigned char HttpTagPostPending;
-extern void HTTPTagPostTask(void);
+	extern void IRTxRxInit();
+	//extern void IRTransmitter();
+	extern void IRReceiver();
+	//extern unsigned char IRTxTrigger;
+	extern unsigned char IRRxTrigger;
+	//extern DWORD LastTxTriggerTimer;
+	//extern unsigned char IRTxStartTransmit;
+	//extern unsigned char IRTxStateMachine;
+	//extern DWORD LastTxTimer;
+	//#define IRTXSTARTBIT 0
+	extern unsigned char HttpTagPostPending;
+	extern void HTTPTagPostTask(void);
 #endif
 
 
@@ -252,33 +255,24 @@ void main(void)
 int main(void)
 #endif
 {
-	//char ov[]="the override string";
-	//char ip[]="IP=192.168.4.67";
-	char d[]="PIR=0&PIROUT=0&REED1=0&REED2=0&LM=0.0000&LDR=0.0000";
+	char d[]="PIR=0&PIROUT=0&REED1=0&REED2=0&LM=0.0000&LDR=0.0000";  // main sting to be tranferred as POST data
 	sprintf(override,"2override");
-	PIR=4;
-	PIROUT=13;
-	REED1=21;
-	REED2=29;
-	LM=34;
-	LDR=45;
+	PIR=4;	PIROUT=13;	REED1=21; // the locations of various data insertions
+	REED2=29;	LM=34;	LDR=45;	  // in the main string being transferred by POST method
 	buff=d;
-//	buf=ip;
 	static DWORD t = 0;
-	static DWORD dwLastIP = 0;
+//	static DWORD dwLastIP = 0;
 
 	// Initialize application specific hardware
 	InitializeBoard();
-	T5CON=0x8030;// initialize timer 1 count = 256 clock pulses
-	TMR5=0;
 	LED0_IO=1;
 	#if defined(USE_LCD)
 	// Initialize and display the stack version on the LCD
-//	LCDInit();
-//	DelayMs(100);
-//	strcpypgm2ram((char*)LCDText, "TCPStack " TCPIP_STACK_VERSION "  "
-//		"                ");
-//	LCDUpdate();
+	//	LCDInit();
+	//	DelayMs(100);
+	//	strcpypgm2ram((char*)LCDText, "TCPStack " TCPIP_STACK_VERSION "  "
+	//		"                ");
+	//	LCDUpdate();
 	#endif
 
 	// Initialize stack-related hardware components that may be
@@ -339,8 +333,7 @@ int main(void)
 */
 	// Initialize core stack layers (MAC, ARP, TCP, UDP) and
 	// application modules (HTTP, SNMP, etc.)
-
-		LED2_IO=1;
+	LED2_IO=1;
     StackInit();
 
     #if defined(WF_CS_TRIS)
@@ -402,12 +395,10 @@ needed
     // If a task needs very long time to do its job, it must be broken
     // down into smaller pieces so that other tasks can have CPU time.
 
-	PORTGbits.RG12=0;
+//	PORTFbits.RF1=1;
     while(1)
     {
 		buff=d;
-
-
         // Blink LED0 (right most one) every second.
         if(TickGet() - t >= TICK_SECOND/2ul)
         {
@@ -416,14 +407,14 @@ needed
 			counter++;
 
         }
-		#if defined (ADC)
+		/*#if defined (ADC)
 		if(TickGet() - ADCLoadTime >= ADC_SAMPLE_TIME)
 			{
 				ADCLoadTime = TickGet();
-				WriteADCData();
+			//	WriteADCbuff();
 			}
 		#endif
-
+		*/
         // This task performs normal stack task including checking
         // for incoming packet, type of packet and calling
         // appropriate stack entity to process it.
@@ -517,19 +508,19 @@ needed
         // If the local IP address has changed (ex: due to DHCP lease change)
         // write the new IP address to the LCD display, UART, and Announce
         // service
-	//	DisplayIPValue(AppConfig.MyIPAddr);
+		/*
 		if(dwLastIP != AppConfig.MyIPAddr.Val)
 		{
 			dwLastIP = AppConfig.MyIPAddr.Val;
 
 			#if defined(STACK_USE_UART)
-				//putrsUart((ROM char*)"\r\nNew IP Address: ");
+				putrsUart((ROM char*)"\r\nNew IP Address: ");
 			#endif
 
-	//		DisplayIPValue(AppConfig.MyIPAddr);
+			DisplayIPValue(AppConfig.MyIPAddr);
 
 			#if defined(STACK_USE_UART)
-				//putrsUart((ROM char*)"\r\n");
+				putrsUart((ROM char*)"\r\n");
 			#endif
 
 
@@ -541,6 +532,7 @@ needed
 				mDNSFillHostRecord();
 			#endif
 		}
+		*/
 	}
 }
 
@@ -676,9 +668,12 @@ static void WF_Connect(void)
 }
 #endif /* WF_CS_TRIS */
 
+
+
 // Writes an IP address to the ethernet to be read by php script on the other end
 void DisplayIPValue(IP_ADDR IPVal)
 {
+/*
 //	printf("%u.%u.%u.%u", IPVal.v[0], IPVal.v[1], IPVal.v[2], IPVal.v[3]);
     BYTE IPDigit[4];
 	BYTE i;
@@ -699,7 +694,7 @@ void DisplayIPValue(IP_ADDR IPVal)
 		if(i == sizeof(IP_ADDR)-1)
 			break;
 		buf[k++] = '.';
-/*		#if defined(STACK_USE_UART)
+		#if defined(STACK_USE_UART)
 			putsUART((char *) IPDigit);
 		#endif
 
@@ -720,7 +715,7 @@ void DisplayIPValue(IP_ADDR IPVal)
 			while(BusyUART());
 			WriteUART('.');
 		#endif
-		*/
+		
 	}
 
 
@@ -729,7 +724,7 @@ void DisplayIPValue(IP_ADDR IPVal)
 
 
 
-/*	#ifdef USE_LCD
+	#ifdef USE_LCD
 		if(LCDPos < 32u)
 			LCDText[LCDPos] = 0;
 		LCDUpdate();
@@ -737,168 +732,157 @@ void DisplayIPValue(IP_ADDR IPVal)
 */
 }
 
-// Processes A/D data from the potentiometer
+
+/****************************************************************************
+  Function:
+    static void ProcessIO(void)
+
+  Description:
+    Performs the task of reading the inputs and deciding the output accordingly
+
+  Precondition:
+    All initializations must be done
+
+  Parameters:
+    None - None
+
+  Returns:
+    None
+  ***************************************************************************/
 static void ProcessIO(void)
 {
 	int k;
-	//TCPRecvTask();
 	if(override[0]=='2')
 	{
-		//int k;
-		for(k=0;k<10;k++)
-			temp[k]='0';
 		//managing PIR
- 			if(PORTBbits.RB9 ==1)
+ 		if(PORTBbits.RB4 ==1)
+		{
+			buff[PIROUT]='1';
+			buff[PIR]='1';
+			counter=0;
+			PORTGbits.RG14=1;
+		}
+		else
+		{
+			buff[PIR]='0';
+			if(counter>=60)
 			{
-				buff[PIROUT]='1';
-				buff[PIR]='1';
+				buff[PIROUT]='0';
+				PORTGbits.RG14=0;
 				counter=0;
-				PORTGbits.RG14=1;
 			}
-			//else
-			//{
-			//		buff[PIR]='0';
-			//		//buff[PIROUT]='1';
-			//		if(TMR5>=(count))
-			//		{
-    		//            counter++;
-      		//          if(counter==1450)
-        	//        {
-          	//          buff[PIROUT]='0';
-            //        PORTGbits.RG12=0;
-            //      counter=0;
-            // }
-			//}
-			//TMR5=0;
-			//	}
-			//end PIR
-			//managing reed sensor
-			else
-			{
-				buff[PIR]='0';
-				if(counter>=60)
-				{
-					buff[PIROUT]='0';
-					PORTGbits.RG14=0;
-					counter=0;
-				}
-			}
-			if(PORTBbits.RB3==1)
-			{
-				buff[REED1]='1';
-				PORTAbits.RA7=1;
-			}
-			else
-			{
-				buff[REED1]='0';
-				PORTAbits.RA7=0;
-			}
-			if(PORTBbits.RB2==1)
-			{
-				buff[REED2]='1';
-				PORTAbits.RA6=1;
-			}
-			else
-			{
-				buff[REED2]='0';
-				PORTAbits.RA6=0;
-			}
-			//end reed
-			//getting temperature from AN3
-			s=0;
-			SelectChannel(1);
-			number2(ReadADCData()*100,2);  //milivolts divided by 10 for abs temp value
-			for(k=LM;k<(LM+5);k++)
-				buff[k]=temp[k-LM];
-			for(k=0;k<10;k++)
-				temp[k]='0';
-			//end temperature
-			s=0;
-			SelectChannel(0);
-			number2((ReadADCData()),2);
-			for(k=LDR;k<(LDR+4);k++)
-				buff[k]=temp[k-LDR];
+		}
+		//END of PIR
+	
+		//REED SENSOR 1
+		if(PORTBbits.RB3==1)
+		{
+			buff[REED1]='1';
+			PORTAbits.RA7=1;
+		}
+		else
+		{
+			buff[REED1]='0';
+			PORTAbits.RA7=0;
+		}
+		//END
+		
+		//REED SENSOR 2
+		if(PORTBbits.RB2==1)
+		{
+			buff[REED2]='1';
+			PORTAbits.RA6=1;
+		}
+		else
+		{
+			buff[REED2]='0';
+			PORTAbits.RA6=0;
+		}
+		//END
+
+		//Reading temperature from AN1
+		SelectChannel(1);
+		s=ReadADCData();  //milivolts divided by 10 for abs temp value
+		s=s*100;
+		sprintf(temp,"%f",s);
+		for(k=LM;k<(LM+4);k++)
+			buff[k]=temp[k-LM];
+		//END
+
+		//CURRENT Reading
+		SelectChannel(0);
+		s=ReadADCData();
+		sprintf(temp,"%f",s);
+		for(k=LDR;k<(LDR+4);k++)
+			buff[k]=temp[k-LDR];
 	}
 	else
 	{
-	//	int k;
-		for(k=0;k<10;k++)
-			temp[k]='0';
 		//managing PIR
- 			if(PORTBbits.RB9 ==1)
+ 		if(PORTBbits.RB4 ==1)
+		{
+			buff[PIROUT]='1';
+			buff[PIR]='1';
+			counter=0;
+		}
+		else
+		{
+			buff[PIR]='0';
+			if(counter>=60)
 			{
-				buff[PIROUT]='1';
-				buff[PIR]='1';
+				buff[PIROUT]='0';
 				counter=0;
 			}
-			//else
-			//{
-			//		buff[PIR]='0';
-			//		//buff[PIROUT]='1';
-			//		if(TMR5>=(count))
-			//		{
-    		//            counter++;
-      		//          if(counter==1450)
-        	//        {
-          	//          buff[PIROUT]='0';
-            //        PORTGbits.RG12=0;
-            //      counter=0;
-            // }
-			//}
-			//TMR5=0;
-			//	}
-			//end PIR
-			//managing reed sensor
-			else
-			{
-				buff[PIR]='0';
-				if(counter>=60)
-				{
-					buff[PIROUT]='0';
-					counter=0;
-				}
-			}
-			if(PORTBbits.RB3==1)
-			{
-				buff[REED1]='1';
-			}
-			else
-			{
-				buff[REED1]='0';
-			}
-			if(PORTBbits.RB2==1)
-			{
-				buff[REED2]='1';
-			}
-			else
-			{
-				buff[REED2]='0';
-			}
-			//end reed
-			//getting temperature from AN3
-			s=0;
-			SelectChannel(1);
-			number2(ReadADCData()*100,2);  //milivolts divided by 10 for abs temp value
-			for(k=LM;k<(LM+5);k++)
-				buff[k]=temp[k-LM];
-			for(k=0;k<10;k++)
-				temp[k]='0';
-			//end temperature
-			s=0;
-			SelectChannel(0);
-			number2((ReadADCData()),2);
-			for(k=LDR;k<(LDR+4);k++)
-				buff[k]=temp[k-LDR];
-		if(override[0]=='1')
+		}
+		//END of PIR
+	
+		//REED SENSOR 1
+		if(PORTBbits.RB3==1)
+		{
+			buff[REED1]='1';
+		}
+		else
+		{
+			buff[REED1]='0';
+		}
+		//END
+		
+		//REED SENSOR 2
+		if(PORTBbits.RB2==1)
+		{
+			buff[REED2]='1';
+		}
+		else
+		{
+			buff[REED2]='0';
+		}
+		//END
+
+		//Reading temperature from AN1
+		SelectChannel(1);
+		s=ReadADCData();  //milivolts divided by 10 for abs temp value
+		s=s*100;
+		sprintf(temp,"%f",s);
+		for(k=LM;k<(LM+4);k++)
+			buff[k]=temp[k-LM];
+		//END
+
+		//CURRENT Reading
+		SelectChannel(0);
+		s=ReadADCData();
+		sprintf(temp,"%f",s);
+		for(k=LDR;k<(LDR+4);k++)
+			buff[k]=temp[k-LDR];
+		//END
+		if(override[0]=='1')  //SET output to 1 as per override
 		{
 			PORTGbits.RG14=1;
 		}
-		else if(override[0]=='0')
+		else if(override[0]=='0')  //SET output to 0 as per override
 		{
 			PORTGbits.RG14=0;
 		}
 	}
-	
 	TCPRecvTask();
 	HTTPADCPostTask();
 }
@@ -1263,8 +1247,8 @@ which is needed for ENC28J60 commnications
 
 // my declarations not in the original demo code
 // input declarations ......
-	AD1PCFGbits.PCFG9=1; // setting digital i/p for PIR sensor at AN4 , pin 2 on board
-	TRISBbits.TRISB9=1;  // specify AN4, pin 2 as input for PIR
+	AD1PCFGbits.PCFG4=1; // setting digital i/p for PIR sensor at AN4 , pin 2 on board
+	TRISBbits.TRISB4=1;  // specify AN4, pin 2 as input for PIR
 	AD1PCFGbits.PCFG3=1; // setting digital i/p for REED-1 sensor at AN3 , pin 3 on board
 	TRISBbits.TRISB3=1;  // specify AN3, pin 3 as input for REED-1
 	AD1PCFGbits.PCFG2=1; // setting digital i/p for REED-2 sensor at AN2 , pin 4 on board
@@ -1274,24 +1258,18 @@ which is needed for ENC28J60 commnications
 	AD1PCFGbits.PCFG0=0; // setting AN0, pin 6 on board, analog for LDR sensor
 //	TRISBbits.TRISB0=1;  // specify AN0 as input for LDR
 	// end of input declarations........
-
+	AD1PCFGbits.PCFG11=1;
+	TRISBbits.TRISB11=0;
+	PORTBbits.RB11=1;
 	TRISFbits.TRISF1=0;
 	PORTFbits.RF1=1;
 	//Output Declarations .............
-	TRISGbits.TRISG14=0; // output on RG6 for PIR sensor
-	TRISAbits.TRISA7=0; // output on RC4 for REED-1
-	TRISAbits.TRISA6=0; // output on RC3 for REED-2
-	TRISGbits.TRISG0=0; // output on RC2 for LM35
-	TRISGbits.TRISG1=0; // output on RC1 for LDR
+	TRISGbits.TRISG14=0; // output on RG14 for PIR sensor
+	TRISAbits.TRISA7=0; // output on RA7 for REED-1
+	TRISAbits.TRISA6=0; // output on RA6 for REED-2
+	TRISGbits.TRISG0=0; // output on RG0 for LM35
+	TRISGbits.TRISG1=0; // output on RG1 for current
 	// end of output declarations .......
-
-
-	//other declarations ..........
-
-	// Timer to set interval on PIR sensor
-	// this sets the time when the output goes low after no motion is detected
-	// starting the clock and count maintained the the variable count
-
 
 
 }
@@ -1421,13 +1399,11 @@ MY_DEFAULT_SECONDARY_DNS_BYTE3<<16ul  | MY_DEFAULT_SECONDARY_DNS_BYTE4<<24ul;
 	            AppConfig.SecurityKeyLength = 0;
 
 	        #elif MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WEP_40
-	            memcpypgm2ram(AppConfig.SecurityKey, (ROM void*)MY_DEFAULT_WEP_KEYS_40, sizeof(MY_DEFAULT_WEP_KEYS_40)
-- 1);
+	            memcpypgm2ram(AppConfig.SecurityKey, (ROM void*)MY_DEFAULT_WEP_KEYS_40, sizeof(MY_DEFAULT_WEP_KEYS_40)- 1);
 	            AppConfig.SecurityKeyLength = sizeof(MY_DEFAULT_WEP_KEYS_40) - 1;
 
 	        #elif MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WEP_104
-			    memcpypgm2ram(AppConfig.SecurityKey, (ROM void*)MY_DEFAULT_WEP_KEYS_104, sizeof
-(MY_DEFAULT_WEP_KEYS_104) - 1);
+			    memcpypgm2ram(AppConfig.SecurityKey, (ROM void*)MY_DEFAULT_WEP_KEYS_104, sizeof(MY_DEFAULT_WEP_KEYS_104) - 1);
 			    AppConfig.SecurityKeyLength = sizeof(MY_DEFAULT_WEP_KEYS_104) - 1;
 
 	        #elif (MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WPA_WITH_KEY)       || \
@@ -1439,8 +1415,7 @@ MY_DEFAULT_SECONDARY_DNS_BYTE3<<16ul  | MY_DEFAULT_SECONDARY_DNS_BYTE4<<24ul;
 	        #elif (MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WPA_WITH_PASS_PHRASE)     || \
 	              (MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WPA2_WITH_PASS_PHRASE)    || \
 	              (MY_DEFAULT_WIFI_SECURITY_MODE == WF_SECURITY_WPA_AUTO_WITH_PASS_PHRASE)
-	            memcpypgm2ram(AppConfig.SecurityKey, (ROM void*)MY_DEFAULT_PSK_PHRASE, sizeof(MY_DEFAULT_PSK_PHRASE) -
-1);
+	            memcpypgm2ram(AppConfig.SecurityKey, (ROM void*)MY_DEFAULT_PSK_PHRASE, sizeof(MY_DEFAULT_PSK_PHRASE) -1);
 	            AppConfig.SecurityKeyLength = sizeof(MY_DEFAULT_PSK_PHRASE) - 1;
 
 	        #else
@@ -1553,94 +1528,60 @@ void SaveAppConfig(const APP_CONFIG *ptrAppConfig)
 
 
 #if defined(myADC)
-void ADCInit()
-{
-//	AD1CON1=0;
-//	AD1CSSL = 0;
-			//000  Vr+=Vdd  Vr-=Vss
-//	AD1CON2=0;
+	/* function ADCInit .... return type void ...... arguments void
+		Setings::
+			Initializes the ADC module
+			Conversion starts when we set the SAMP bit to 1 and ends after 31Tad
+			After Conversion DONE bit goes high and the data ca be read from ADC1BUF0
+	*/
+	void ADCInit()
+	{
+		AD1CON1bits.ADON=0;
+		AD1CON1 = 0x00E0; // SSRC<2:0> = 111 implies internal counter ends sampling and starts converting.
+		AD1CSSL = 0;
+		AD1CON3 = 0x1F02; // Sample time = 31Tad, Tad = 3Tcy
+		AD1CON2 = 0;
+		AD1CON1bits.ADON=1; //TURNING ON A/D MODULE
+	}
 
-	// Select the analog conversion clock to match desired data rate with processor clock=00000000=Tcy
 
-	// Select the appropriate sample/conversion sequence
+	/* function SelectChannel ...... return type: void ............... arguments : int [the pin no. to be read]
+			Used the select the ADC or PORTB pin currently being read from
+	*/
+	void SelectChannel(unsigned int I)
+	{
+		AD1CON1bits.ADON=0;
+		AD1CHS=(I&0x000f);
+		AD1CON1bits.ADON=1;
+	}
 
 
-//	AD1CON3=0x0002;
-AD1CON1bits.ADON=0;
-AD1CON1 = 0x00E0; // SSRC<2:0> = 111 implies internal counter ends sampling
-// and starts converting.
-// Connect AN12 as S/H input.
-// in this example AN12 is the input
-AD1CSSL = 0;
-AD1CON3 = 0x1F02; // Sample time = 31Tad, Tad = 3Tcy
-AD1CON2 = 0;
 
-	AD1CON1bits.ADON=1; //TURNING ON A/D MODULE
-}
+	/*function convert..... return: double ...... arguments: void
+		to get float temperature value from ADC buffer reading
+	*/
+	double convert(void)
+	{
+		int adc;
+		adc=ADC1BUF0;
+		adc=adc&(0x03ff); // trim the leading 6bits
+		double k=(double)adc*0.00319;
+		return k;
+	}
 
-void SelectChannel(unsigned int I)
-{
-	AD1CON1bits.ADON=0;
-	AD1CHS=(I&0x000f);
-	AD1CON1bits.ADON=1;
-}
 
-float convert()
-{
-	int adc;
-	adc=ADC1BUF0;
-	adc=adc&(0x03ff); // trim the leading 6bits
-	float k=(adc*3.36)/1024.0;
-	return k;
-}
 
-float ReadADCData() // converted value in voltage
-{
-		AD1CON1bits.SAMP=1; // enable=1 FOR SAMPLING
-		//DelayMs(10);
-		//AD1CON1bits.SAMP=0;
-		while(AD1CON1bits.DONE==0);
-		float t=convert();
-		//AD1CON1bits.DONE=0;
-		return(t);
-}
-
-void digit(int a)
-{
-	temp[s]=(char)(a+48);
-	s++;
-}
-
-void number(int num)
-{
-    int str[5],c=0;
-	if(num==0)
-        digit(0);
-	else
-        while(num)
-		{
-            str[c]=(num%10);c++;num/=10;
-        }
-    while(c!=0)
-    {
-        c--;
-        digit(str[c]);
-    }
-}
-
-void number2(float n,int p)
-{
-	s=0;
-    int a,c;
-    a=n;
-    n=n-a;
-    for(c=1;c<=p;c++)
-        n=n*10;
-    number(a);
-    temp[s]='.';
-	s++;
-    number(n);
-}
-
+	/*function ReadADCData..... return: double ...... arguments: void
+		used to read the sampled ADC value of the currently selected channel
+		NOTE:: it is important to call SelectChannel else the 0th pin will be sampled
+	*/
+	double ReadADCData()
+	{
+			AD1CON1bits.SAMP=1; // enable=1 FOR SAMPLING
+			while(AD1CON1bits.DONE==0); // wait till the sampling is complete
+			
+			double t=convert();  // get the value of buffer as float
+			return(t);
+	}
 #endif
 

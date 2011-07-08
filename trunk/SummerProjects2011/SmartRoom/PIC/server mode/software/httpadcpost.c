@@ -53,13 +53,9 @@
  * Howard Schlunder     8/01/06	Original
  ********************************************************************/
 #define __GENERICTCPCLIENT_C
-
 #include "TCPIPConfig.h"
-
 #include "TCPIP Stack/TCPIP.h"
 #include <string.h>
-
-
 #include "MainDemo.h"
 #define STACK_USE_UART	
 
@@ -133,28 +129,26 @@ void HTTPADCPostTask(void)
 	{
 		case SM_HOME:
 			// Connect a socket to the remote TCP server
-			
 			Socket = TCPOpen((DWORD)&ServerName[0], TCP_OPEN_RAM_HOST, ServerPort, TCP_PURPOSE_DEFAULT);
 			
 			// Abort operation if no TCP socket of type TCP_PURPOSE_GENERIC_TCP_CLIENT is available
 			// If this ever happens, you need to go add one to TCPIPConfig.h
 			if(Socket == INVALID_SOCKET)
-				{
-					putrsUART((ROM char*)"\r\n\r\nInvalid Socket...\r\n");
-//					HttpADCPostPending = 0;
-					break;
+			{
+				//putrsUART((ROM char*)"\r\n\r\nInvalid Socket...\r\n");
+				//HttpADCPostPending = 0;
+				break;
+			}
 
-				}
 			LED3_IO = 1;
+			/*
 			#if defined(STACK_USE_UART)
-		
-			putrsUART((ROM char*)"\r\n\r\nConnecting using Microchip TCP API...\r\n");
-				
+				putrsUART((ROM char*)"\r\n\r\nConnecting using Microchip TCP API...\r\n");			
 			#endif
+			*/
 
 			HTTPTimeState++;
-			Timer = TickGet();
-			
+			Timer = TickGet();			
 			break;
 
 		case SM_SOCKET_OBTAINED:
@@ -162,14 +156,14 @@ void HTTPADCPostTask(void)
 			if(!TCPIsConnected(Socket))
 			{
 				// Time out if too much time is spent in this state
-				if(TickGet()-Timer > 1*TICK_SECOND)
+				if(TickGet()-Timer > 5*TICK_SECOND)
 				{
 					// Close the socket so it can be used by other modules
 					TCPDisconnect(Socket);
 					Socket = INVALID_SOCKET;
 					HTTPTimeState--;
-					putrsUART((ROM char*)"\r\n\r\nTimeout in Remote connection...\r\n");
-//					HttpADCPostPending = 0;
+					//putrsUART((ROM char*)"\r\n\r\nTimeout in Remote connection...\r\n");
+					//HttpADCPostPending = 0;
 				}
 				break;
 			}
@@ -180,9 +174,7 @@ void HTTPADCPostTask(void)
 			if(TCPIsPutReady(Socket) < 125u)
 				break;
 
-	
-			
-	//	TotalReadBytes += 10;
+			//	TotalReadBytes += 10;
 			LED2_IO = 1;
 			TCPFlush(Socket);
 			// Place the application protocol data into the transmit buffer.  For this example, we are connected to an HTTP server, so we'll send an HTTP GET request.
@@ -204,23 +196,7 @@ void HTTPADCPostTask(void)
 		//	TCPPut(Socket, TotalReadBytesArray[1]);
 			TCPPutString(Socket, (BYTE*)"\r\n\n");
 			TCPPutString(Socket, (BYTE*)buff);
-		/*	TCPPutString(Socket, (BYTE*)"PIR=");
-			TCPPutString(Socket, (BYTE*)UnitName);
-			TCPPutString(Socket, (BYTE*)PIR);
-			TCPPutString(Socket, (BYTE*)"&REED1=");
-		//	TCPPutString(Socket, (BYTE*)UnitName);
-			TCPPutString(Socket, (BYTE*)REED1);
-			TCPPutString(Socket, (BYTE*)"&REED2=");
-		//	TCPPutString(Socket, (BYTE*)UnitName);
-			TCPPutString(Socket, (BYTE*)REED2);
-			TCPPutString(Socket, (BYTE*)"&LM=");
-		//	TCPPutString(Socket, (BYTE*)UnitName);
-			TCPPutString(Socket, (BYTE*)LM);
-			TCPPutString(Socket, (BYTE*)"&LDR=");
-		//	TCPPutString(Socket, (BYTE*)UnitName);
-			TCPPutString(Socket, (BYTE*)LDR);
- 		//	TCPPutString(Socket, (BYTE*)LM);
- 	*/
+
 			// Send the packet
 			TCPFlush(Socket);
 			HTTPTimeState++;
@@ -230,10 +206,9 @@ void HTTPADCPostTask(void)
 			// Check to see if the remote node has disconnected from us or sent us any application data
 			// If application data is available, write it to the UART
 			LED2_IO = 0;
-		//	TotalReadBytes=0;
-//			TotalBytes=0;
+			//TotalReadBytes=0;
+			//TotalBytes=0;
 		
-			
 			if(!TCPIsConnected(Socket))
 			{
 				HTTPTimeState = SM_DISCONNECT;
@@ -248,10 +223,8 @@ void HTTPADCPostTask(void)
 			
             w -= TCPGetArray(Socket, vBuffer, w);
             vBuffer[w] = '\0';
-			putrsUART(vBuffer);
+			//putrsUART(vBuffer);
 		    HTTPTimeState = SM_DISCONNECT;
-//			gets(vBuffer);
-	
          	break;
 	
 		case SM_DISCONNECT:
@@ -260,7 +233,7 @@ void HTTPADCPostTask(void)
 			TCPDisconnect(Socket);
 			Socket = INVALID_SOCKET;
 			HTTPTimeState = SM_DONE;
-//			HttpADCPostPending=0;
+			//HttpADCPostPending=0;
 			LED3_IO=0;
 			LED4_IO=0;
 			break;
@@ -268,7 +241,7 @@ void HTTPADCPostTask(void)
 		case SM_DONE:
 			LED3_IO=1;
 			LED4_IO=1;
-//			DelayMs(1000);
+			//DelayMs(1000);
 			HTTPTimeState = SM_HOME;
 			break;
 	}

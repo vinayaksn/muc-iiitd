@@ -53,30 +53,28 @@
  * Howard Schlunder     8/01/06	Original
  ********************************************************************/
 #define __GENERICTCPCLIENT_C
-
 #include "TCPIPConfig.h"
-
 #include "TCPIP Stack/TCPIP.h"
 #include <string.h>
-
-
 #include "MainDemo.h"
-#define STACK_USE_UART	
-extern char override[10];
+#define STACK_USE_UART
+	
 
+void TCPRecvTask(void);
 void StartTCPTimeStateMachine(void);
+static WORD MyPort = 1234; // PORT to bind the server to
+extern char override[10];
 
 // Defines the server to be accessed for this application
 //static BYTE ServerName[] =	"www.led20.net";
 //static BYTE ServerName[] =	"192.168.4.68";
 // Defines the port to be accessed for this application
 //static WORD ServerPort = 80;
-static WORD MyPort = 1234;
 // Defines the URL to be requested by this HTTP client
 //static BYTE RemoteURL[] = "/cgi-bin/motion-upload.cgi";
 //static BYTE RemoteURL[] = "/SmarterRooms/data.php";
 //static BYTE RemoteURL[] = "/SmarterRooms/index.php";
-void TCPRecvTask(void);
+
 static enum
 {
 	SM_HOME = 0,
@@ -92,21 +90,15 @@ void StartTCPTimeStateMachine(void)
 
 /*****************************************************************************
   Function:
-	void HTTPPostTask(void)
+	void TCPRecvTask(void)
 
   Summary:
-	Implements a simple HTTP client (over TCP).
+	Implements a simple HTTP Server (over TCP).
 
   Description:
-	This function implements a simple HTTP client, which operates over TCP.  
-	The function is called periodically by the stack, and waits for BUTTON1 
-	to be pressed.  When the button is pressed, the application opens a TCP
-	connection to an Internet search engine, performs a search for the word
-	"Microchip" on "microchip.com", and prints the resulting HTML page to
-	the UART.
-	
-	This example can be used as a model for many TCP and HTTP client
-	applications.
+	This function implements a simple HTTP Server, which operates over TCP.  
+	The function is called periodically by the stack, and waits for any override status 
+	from a client system.
 
   Precondition:
 	TCP is initialized.
@@ -124,24 +116,21 @@ void TCPRecvTask(void)
 	BYTE				vBuffer[1000];
 	static DWORD		Timer_2;
 	static TCP_SOCKET	MySocket = INVALID_SOCKET;
-//	static TCP_SOCKET   Socket = INVALID_SOCKET;
+
 	switch(TCPTimeState)
 	{
 		case SM_HOME:
 			// Connect a socket to the remote TCP server
-			
 			MySocket = TCPOpen(0, TCP_OPEN_SERVER, MyPort, TCP_PURPOSE_DEFAULT);
-			//Socket = TCPOpen((DWORD)&ServerName[0], TCP_OPEN_SERVER, ServerPort, TCP_PURPOSE_DEFAULT);
-			
-			// Abort operation if no TCP socket of type TCP_PURPOSE_GENERIC_TCP_CLIENT is available
+		
+			// Abort operation if no TCP socket of type TCP_PURPOSE_DEFAULT is available
 			// If this ever happens, you need to go add one to TCPIPConfig.h
 			if(MySocket == INVALID_SOCKET)
-				{
-					putrsUART((ROM char*)"\r\n\r\nInvalid Socket...\r\n");
-//					HttpADCPostPending = 0;
-					break;
-
-				}
+			{
+				//putrsUART((ROM char*)"\r\n\r\nInvalid Socket...\r\n");
+				//HttpADCPostPending = 0;
+				break;
+			}
 			LED3_IO = 1;
 			TCPTimeState++;
 			Timer_2=TickGet();
@@ -157,8 +146,8 @@ void TCPRecvTask(void)
 					TCPClose(MySocket);
 					MySocket = INVALID_SOCKET;
 					TCPTimeState--;
-				//	putrsUART((ROM char*)"\r\n\r\nTimeout in Remote connection...\r\n");
-//					HttpADCPostPending = 0;
+					//putrsUART((ROM char*)"\r\n\r\nTimeout in Remote connection...\r\n");
+					//HttpADCPostPending = 0;
 				}
 				break;
 			}
