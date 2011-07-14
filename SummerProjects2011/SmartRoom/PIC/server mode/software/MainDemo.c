@@ -803,7 +803,7 @@ static void ProcessIO(void)
 		//Reading temperature from AN1
 		SelectChannel(1);
 		s=ReadADCData();  //milivolts divided by 10 for abs temp value
-		s=s*100;
+		s=s*16.67;
 		sprintf(temp,"%f",s);
 		for(k=LM;k<(LM+4);k++)
 			buff[k]=temp[k-LM];
@@ -861,7 +861,7 @@ static void ProcessIO(void)
 		//Reading temperature from AN1
 		SelectChannel(1);
 		s=ReadADCData();  //milivolts divided by 10 for abs temp value
-		s=s*100;
+		s=s*16.67;
 		sprintf(temp,"%f",s);
 		for(k=LM;k<(LM+4);k++)
 			buff[k]=temp[k-LM];
@@ -884,6 +884,8 @@ static void ProcessIO(void)
 		}
 	}
 	TCPRecvTask();
+	StackTask();
+	StackApplications();
 	HTTPADCPostTask();
 }
 
