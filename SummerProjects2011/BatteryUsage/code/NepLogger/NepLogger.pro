@@ -4,7 +4,7 @@
 # dir1.source = mydir
 DEPLOYMENTFOLDERS = # file1 dir1
 
-symbian:TARGET.UID3 = 0xE61A4F5A
+symbian:TARGET.UID3 = 0xA00104B3
 
 # Smart Installer package's UID
 # This UID is from the protected range 
@@ -19,44 +19,25 @@ symbian:TARGET.CAPABILITY += NetworkServices
 # If your application uses the Qt Mobility libraries, uncomment
 # the following lines and add the respective components to the 
 # MOBILITY variable. 
-CONFIG += mobility
-MOBILITY += sensors
+# CONFIG += mobility
+# MOBILITY +=
 
 SOURCES += main.cpp mainwindow.cpp \
-    ../testsymbi/helloworldcontainer.cpp \
-    ../testsymbi/callsmonitor.cpp \
-    batteryinfo.cpp \
-    CGestureInterpreter.cpp \
-    csensortestcontainer.cpp
+    nepreader.cpp
 HEADERS += mainwindow.h \
-    ../testsymbi/HelloWorldContainer.h \
-    ../testsymbi/callsmonitor.h \
-    batteryinfo.h \
-    CGestureInterpreter.h \
-    csensortestcontainer.h
+    nepreader.h
 FORMS += mainwindow.ui
-QT += core \
-    gui \
-    network
-CONFIG += mobility
-MOBILITY = systeminfo
+
+
+include(deployment.pri)
+qtcAddDeployment()
+
 symbian: {
-    TARGET.UID3 = 0xE61A4F5A
+    TARGET.UID3 = 0xA00104B2
     TARGET.CAPABILITY = ReadUSerData \
         WriteUserData \
         NetworkServices \
         LocalServices ReadDeviceData
- LIBS += -lcone -leikcore -lavkon -lhwrmvibraclient -lmediaclientaudio -lprofileengine -lcntmodel -letel3rdparty -lefsrv -lbafl -lestor -leuser -lhal -lsensrvclient -lsensrvutil
+ LIBS += -lcone -leikcore -lavkon -lhwrmvibraclient -lmediaclientaudio -lprofileengine -lcntmodel -letel3rdparty -lefsrv -lbafl -lestor -leuser -lhal -lsensrvclient -lsensrvutil -lmsgs -lsmcm -lJuiceExternalApi
 }
-
 # Please do not modify the following two lines. Required for deployment.
-include(deployment.pri)
-qtcAddDeployment()
-
-OTHER_FILES += \
-    qtc_packaging/debian_fremantle/rules \
-    qtc_packaging/debian_fremantle/README \
-    qtc_packaging/debian_fremantle/copyright \
-    qtc_packaging/debian_fremantle/control \
-    qtc_packaging/debian_fremantle/compat \
-    qtc_packaging/debian_fremantle/changelog
