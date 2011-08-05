@@ -15,16 +15,20 @@
 	</div>
 
 	<?php
-		$file=fopen("data.xml","w");
+		
+
+		$file=fopen("data2.xml","w");
 		fputs($file,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
 		fputs($file,"<chart>\r\n");
 		fputs($file,"<series>\r\n");
+		$date2=date("Y-m-d H:i:s");
+		$date1=date("Y-m-d H:i:s", strtotime("-1 hour"));
 
 		$con = mysql_connect("localhost","admin","admin");
 		mysql_select_db("sensors_data", $con);
-		$data = mysql_query("SELECT * FROM data_table",$con);
+		$data = mysql_query("SELECT * FROM data_table WHERE Date BETWEEN \"".$date1."\" and \"".$date2."\"",$con);
 		$i='0';
-		while(($row = mysql_fetch_object($data)))
+		while(($row = mysql_fetch_object($data)) && ($i<12000))
 		  {
 				fputs($file,"<value xid=\"");
 				fputs($file,$i);
@@ -36,9 +40,9 @@
 		  fputs($file,"</series>\r\n");
 		  fputs($file,"<graphs>\r\n");
 		  fputs($file,"<graph gid=\"1\">\r\n");
-		  $data = mysql_query("SELECT * FROM data_table",$con);
+		  $data = mysql_query("SELECT * FROM data_table WHERE Date BETWEEN \"".$date1."\" and \"".$date2."\"",$con);
 		$i='0';
-		while(($row = mysql_fetch_object($data)))
+		while(($row = mysql_fetch_object($data)) && ($i<12000))
 		  {
 				fputs($file,"<value xid=\"");
 				fputs($file,$i);
@@ -55,7 +59,7 @@
 		  mysql_close($con);
 	?>
 	<div id="wrapper" style="min-height:600px;">
-	<!-- saved from url=(0013)about:internet -->
+	
 	<!-- amcharts script-->
 	<!-- swf object (version 2.2) is used to detect if flash is installed and include swf in the page -->
 	<script type="text/javascript" src="swfobject.js"></script>
@@ -69,7 +73,7 @@
 	    	var flashVars = {
 	       		/* path: "../../amcharts/flash/",*/
 	       		settings_file: "line_settings.xml", 
-	        	data_file: "data.xml"
+	        	data_file: "data2.xml"
 			};
     		swfobject.embedSWF("amline.swf", "chartdiv", "600", "400", "8.0.0", "expressInstall.swf", flashVars, params);
 		</script>

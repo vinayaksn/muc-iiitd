@@ -1,4 +1,4 @@
-<div id="log" style="float:left; width:800px; height:600px; overflow:hidden;">
+<div id="log" style="float:left; width:800px; height:600px;overflow:auto;">
 <table border="1" style="margin:20px 0px 0px 30px;">
 <tr>
 <th style="width:100px;">MOTION</th>
@@ -6,7 +6,7 @@
 <th style="width:100px;">WINDOW</th>
 <th style="width:100px;">DOOR</th>
 <th style="width:100px;">TEMPERATURE</th>
-<th style="width:100px;">LIGHT INTENSITY</th>
+<th style="width:100px;">DATE/TIME</th>
 </tr>
 <?php
 $i=0;
@@ -26,7 +26,7 @@ while(($row = mysql_fetch_object($data)) && ($i<100))
   echo "<td>" . $row->REED_1 . "</td>";
   echo "<td>" . $row->REED_2 . "</td>";
   echo "<td>" . $row->LM35 . "</td>";
-  echo "<td>" . $row->LDR . "</td>";
+  echo "<td>" . $row->Date . "</td>";
   echo "</tr>";
   }
   mysql_close($con);
