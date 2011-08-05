@@ -145,6 +145,7 @@ static void ProcessIO(void);
 
 #if defined (myADC)
 	char override[10];
+	int apptime;
 	DWORD ADCLoadTime=0;
 	int PIR,REED1,REED2,LM,LDR,PIROUT;
 	char temp[10];
@@ -255,6 +256,7 @@ void main(void)
 int main(void)
 #endif
 {
+	apptime=30;
 	char d[]="PIR=0&PIROUT=0&REED1=0&REED2=0&LM=0.0000&LDR=0.0000";  // main sting to be tranferred as POST data
 	sprintf(override,"2override");
 	PIR=4;	PIROUT=13;	REED1=21; // the locations of various data insertions
@@ -765,7 +767,7 @@ static void ProcessIO(void)
 		else
 		{
 			buff[PIR]='0';
-			if(counter>=60)
+			if(counter>=(2*apptime))
 			{
 				buff[PIROUT]='0';
 				PORTGbits.RG14=0;
@@ -828,7 +830,7 @@ static void ProcessIO(void)
 		else
 		{
 			buff[PIR]='0';
-			if(counter>=60)
+			if(counter>=(2*apptime))
 			{
 				buff[PIROUT]='0';
 				counter=0;

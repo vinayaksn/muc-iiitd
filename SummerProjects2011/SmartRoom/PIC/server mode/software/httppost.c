@@ -64,6 +64,7 @@ void TCPRecvTask(void);
 void StartTCPTimeStateMachine(void);
 static WORD MyPort = 1234; // PORT to bind the server to
 extern char override[10];
+extern int apptime;
 
 // Defines the server to be accessed for this application
 //static BYTE ServerName[] =	"www.led20.net";
@@ -112,6 +113,10 @@ void StartTCPTimeStateMachine(void)
 void TCPRecvTask(void)
 {
 	int i;
+	int j;
+	int sum;
+	int temp;
+	char c;
 	WORD				w;
 	BYTE				vBuffer[1000];
 	static DWORD		Timer_2;
@@ -160,6 +165,15 @@ void TCPRecvTask(void)
             w -= TCPGetArray(MySocket, vBuffer, w);
 			for(i=0;i<10;i++)
 				override[i]=vBuffer[i];
+			sum=0;
+			for(j=1;j<=3;j++)
+			{
+				c=override[j];
+				temp=c-48;
+				sum=sum*10+temp;
+			}
+			apptime=sum;
+			
 			TCPPutString(MySocket,(BYTE*)"Status Change Done!!!");
 			TCPFlush(MySocket);
 			TCPTimeState++;
