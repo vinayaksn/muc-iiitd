@@ -32,7 +32,7 @@ function getdata(page,date1,date2) {
 }
 
 
-function senddata(state1,state2,state3) {
+function senddata(state1,state2,state3,p) {
 	if(state1==true)
 		state="1";
 	else if(state2==true)
@@ -41,11 +41,12 @@ function senddata(state1,state2,state3) {
 		state="2";
 	else 
 		state="2";
+	
  // get the form values
  $.ajax({
    type: "POST",
    url: "client.php",
-   data: "state="+state,
+   data: "state="+state+"&apptime="+p,
    success: function(resp){
      // we have the response
 	document.getElementById('status').innerHTML=resp;											  

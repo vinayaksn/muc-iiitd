@@ -8,7 +8,19 @@ if($pagenum == '1')
 
 <div id="content2">
 	<font style="font-family:Arial, Helvetica, sans-serif; font-size:30px; color:#DCDCFF; float:left; margin:17px 0px 0px 20px;">
-		Home
+		
+		Smarter room
+	<font style="font-family:Arial, Helvetica, sans-serif; font-size:15px; color:#DCDCFF; float:left; margin:17px 0px 0px 20px;">
+		<p>An integrated system of all sensors used in Embedded system projects to make a room smarter by having centralized (automated)control over all appliances in the room.
+		Currently motion, temperature, and window/door status detecting sensors have been installed.</p>
+		
+		
+
+		<p>Supervisors:  Amarjeet Singh & Pushpendra Singh & Vinayak Naik</p>
+		<p>Interns: Keshav Agarwal(NIT,Rourkela),Pranav Sahay(NSIT),Arjun Ahuja (IIIT-D),Maninder Singh (IP university)</p> 
+		<p>Mentor: Pandarasamy Arjunan (PhD student, IIIT-D)</p>
+		<p> The Block Diagram of the circuit is as below : </p> 
+	<img src="wire connections.png" style="margin:0;"/>
 	</font>
 </div>
 
@@ -35,22 +47,31 @@ if($pagenum == '2')
 		<td width="10px;"></td>
 		<td>FAN</td>
 		<td></td>
-		<td><form name="setstate">
+		<td><form name="setstate" >
 			on<input type="radio" name="state" id="state1"/>
 			off<input type="radio" name="state" id="state2"/>
 			Auto mode[ Sensor Driven]<input type="radio" name="state" id="state3"/>
-			</form>
+			
+			
+			Time(in 3digits in sec) :<input type="text" name="time" id="p"/>
+			</tr>
+		</form>
 		</td>
-		</tr>
 		<tr height="10px;"></tr>
 		<tr>
 		<td width="10px;"></td>
-		<td onclick="senddata(setstate.state1.checked,setstate.state2.checked,setstate.state3.checked);" style="cursor:pointer;">SUBMIT</td>
+		
+		 <td onclick="senddata(setstate.state1.checked,setstate.state2.checked,setstate.state3.checked,setstate.p.value);" style="cursor:pointer;"> SUBMIT		
+		 
+		 <!--
+		<input type=button value="Submit" onclick="senddata(setstate.state1.checked,setstate.state2.checked,setstate.state3.checked,setstate.p.value);">
+		-->
+		</td>
 		<td></td>
 		</tr>
 	</table>
 	<div id='status'>
-	hi
+	'Please select any one of the options'
 	</div>
 </div>
 
@@ -61,8 +82,7 @@ if($pagenum == '2')
 if($pagenum == '3')
 {
 $date2=date("Y-m-d H:i:s");
-$date1=$date2;
-$date1[12]=$date1[12]-1;
+$date1=date("Y-m-d H:i:s", strtotime("-1 hour"));
 ?>
 
 
@@ -85,15 +105,23 @@ echo "<font style=\"float:right\">End:&nbsp;&nbsp;&nbsp;</font>";
 </form>
 <div class="menutitle" onclick="getdata('3',range.date1.value,range.date2.value);">SET DATE&nbsp;&nbsp;&nbsp;&nbsp;<img src="button.png" style="margin:0;"/></div>
 </div>
-<div id="log" style="float:left; width:800px; height:600px; overflow:hidden">
+<div id="log" style="float:left; width:800px; height:600px; overflow:scroll">
 <table border="1" style="margin:20px 0px 0px 30px;">
 <tr>
-<th style="width:100px;">MOTION</th>
-<th style="width:100px;">PIR Output</th>
-<th style="width:100px;">WINDOW</th>
-<th style="width:100px;">DOOR</th>
-<th style="width:100px;">TEMPERATURE</th>
-<th style="width:100px;">LIGHT INTENSITY</th>
+<th style="width:90px;">MOTION</th>
+<th style="width:90px;">PIR Output</th>
+<th style="width:90px;">WINDOW</th>
+<th style="width:90px;">DOOR</th>
+<th style="width:90px;">TEMPERATURE</th>
+<th style="width:145px;">DATE/TIME</th>
+</tr>
+<tr>
+<th style="width:90px;">1:Yes 0:No</th>
+<th style="width:90px;">1:On 0:Off</th>
+<th style="width:90px;">1:Close 0:Open</th>
+<th style="width:90px;">1:Close 0:Open</th>
+<th style="width:90px;">Deg. C</th>
+<th style="width:145px;"></th>
 </tr>
 <?php
 $i=0;
@@ -104,7 +132,7 @@ if($_POST['set']=='1')
 {
 	$data = mysql_query("SELECT * FROM data_table WHERE Date BETWEEN \"".$_POST[date1]."\" and \"".$_POST[date2]."\"",$con);
 }
-while(($row = mysql_fetch_object($data)) && ($i<100))
+while(($row = mysql_fetch_object($data)) && ($i<3700))
   {
   $i++;
   echo "<tr>";
@@ -113,7 +141,7 @@ while(($row = mysql_fetch_object($data)) && ($i<100))
   echo "<td>" . $row->REED_1 . "</td>";
   echo "<td>" . $row->REED_2 . "</td>";
   echo "<td>" . $row->LM35 . "</td>";
-  echo "<td>" . $row->LDR . "</td>";
+  echo "<td>" . $row->Date . "</td>";
   echo "</tr>";
   }
   mysql_close($con);
@@ -148,7 +176,7 @@ if($pagenum == '4')
 	    	var flashVars = {
 	       		/* path: "../../amcharts/flash/",*/
 	       		settings_file: "line_settings.xml", 
-	        	data_file: "line_data.xml"
+	        	data_file: "data2.xml"
 			};
     		swfobject.embedSWF("amline.swf", "chartdiv", "600", "400", "8.0.0", "expressInstall.swf", flashVars, params);
 		</script>

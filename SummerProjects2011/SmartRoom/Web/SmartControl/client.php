@@ -1,7 +1,7 @@
 <?php
 	$host="192.168.4.67";
 	$port=1234;
-	$message=$_POST['state'];
+	$message=$_POST['state'].$_POST['apptime'];
 	$socket = fsockopen($host,$port,$errno,$errstr,$timeout=30); 
 	fputs($socket, $message); 
 	$message=fgets($socket);
