@@ -65,7 +65,7 @@ void StartHTTPTimeStateMachine(void);
 
 // Defines the server to be accessed for this application
 //static BYTE ServerName[] =	"www.led20.net";
-static BYTE ServerName[] =	"192.168.1.177";
+static BYTE ServerName[] =	"192.168.1.250";
 // Defines the port to be accessed for this application
 static WORD ServerPort = 80;
 
