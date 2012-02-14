@@ -57,30 +57,28 @@
 #include "TCPIP Stack/TCPIP.h"
 #include <string.h>
 #include "MainDemo.h"
+#include "pic_server.X/SmartRoom.h"
 #define STACK_USE_UART	
-
-
 
 void StartHTTPTimeStateMachine(void);
 
 // Defines the server to be accessed for this application
-//static BYTE ServerName[] =	"www.led20.net";
-static BYTE ServerName[] =	"192.168.0.3";
+
+//static BYTE ServerName_demo[] = "192.168.1.4";
+
 // Defines the port to be accessed for this application
-static WORD ServerPort = 80;
+static WORD ServerPort=80;
 
-// Defines the URL to be requested by this HTTP client
-//static BYTE RemoteURL[] = "/cgi-bin/motion-upload.cgi";
-//static BYTE RemoteURL[] = "/SmarterRooms/data.php";
-static BYTE RemoteURL[] = "/SmarterRooms/index.php";
-void HTTPADCPostTask(void);
-extern char* buff1;
+void HTTPADCPostTask(BYTE *,BYTE *);
 
+extern char* json_pub_arguments[3]; // defined in smartroom.c to store json arguments to send
+extern short unsigned int flag_http_post;
+extern short int sense_num;
 static enum
 {
 	SM_HOME = 0,
 	SM_SOCKET_OBTAINED,
-	SM_PROCESS_RESPONSE,
+	//SM_PROCESS_RESPONSE,
 	SM_DISCONNECT,
 	SM_DONE
 } HTTPTimeState = SM_DONE;
@@ -89,7 +87,62 @@ void StartHTTPTimeStateMachine(void)
 {
     HTTPTimeState = SM_HOME;    
 }
+/***************************************************************
+ * function to put headers and data to be sent in the socket 
+ *
+ *  Parameters:
+ *  1. socket to put data into
+ *  2. Server name to be sent in headers
+ *  3. Path to which to post
+ *
+ *  Return:
+ *  none
+ *
+ *  Written by :
+ *  #A/M
+ ****************************************************************/
+void putDataHttpPost(TCP_SOCKET Socket,BYTE* ServerName,BYTE* ServerPath){
 
+        BYTE data_len[5];
+        WORD len = 0;
+        BYTE i;
+
+        if(Socket==INVALID_SOCKET)
+            return;
+
+        TCPPutString(Socket, (BYTE*)"POST ");
+        TCPPutString(Socket, (BYTE*)ServerPath);
+        TCPPutString(Socket, (BYTE*)" HTTP/1.1\r\n");
+        TCPPutString(Socket, (BYTE*)"Host: ");
+        TCPPutString(Socket, (BYTE*)ServerName);
+        TCPPutString(Socket, (BYTE*)"\r\n");
+
+
+           for(i=0u ; i< JSON_OBJ_ARGS ;i++){
+               len+=(WORD)strlen(json_pub_arguments[i]);
+            }
+
+        sprintf(data_len,"%d",len);
+
+        // Put required headers
+        TCPPutString(Socket, (BYTE*)"Content-Length:");
+        TCPPutString(Socket, (BYTE*)data_len);
+        TCPPutString(Socket, (BYTE*)"\r\n");
+         
+        TCPPutString(Socket, (BYTE*)"Content-Type: text/plain; charset=UTF-8");
+
+        TCPPutString(Socket, (BYTE*)"\r\n\n");
+
+       for(i = 0u ; i < JSON_OBJ_ARGS ;i++){
+           TCPPutString(Socket,(BYTE*)json_pub_arguments[i]);
+            Nop();
+                  
+       }
+
+
+
+
+}
 
 /*****************************************************************************
   Function:
@@ -118,19 +171,24 @@ void StartHTTPTimeStateMachine(void)
   Returns:
   	None
   ***************************************************************************/
-void HTTPADCPostTask(void)
+void HTTPADCPostTask(BYTE* ServerName,BYTE* ServerPath)
 {
-	WORD				w;
-	BYTE				vBuffer[1000];
-	static DWORD		Timer;
+    /*Response from server is not listened, so w and vBuffer will not be used #A/M */
+    
+    //	WORD				w;
+    //  BYTE				vBuffer[1000];
+	static DWORD		Timer; 
 	static TCP_SOCKET	Socket = INVALID_SOCKET;
 
 	switch(HTTPTimeState)
 	{
 		case SM_HOME:
+                        /*change flag #A/M*/
+                         flag_http_post = 0;
 			// Connect a socket to the remote TCP server
 			Socket = TCPOpen((DWORD)&ServerName[0], TCP_OPEN_RAM_HOST, ServerPort, TCP_PURPOSE_DEFAULT);
 			
+
 			// Abort operation if no TCP socket of type TCP_PURPOSE_GENERIC_TCP_CLIENT is available
 			// If this ever happens, you need to go add one to TCPIPConfig.h
 			if(Socket == INVALID_SOCKET)
@@ -148,10 +206,13 @@ void HTTPADCPostTask(void)
 			*/
 
 			HTTPTimeState++;
+                        //flag_http_post=1;
 			Timer = TickGet();			
 			break;
 
 		case SM_SOCKET_OBTAINED:
+                        //flag_http_post = 0;
+        
 			// Wait for the remote server to accept our connection request
 			if(!TCPIsConnected(Socket))
 			{
@@ -163,7 +224,7 @@ void HTTPADCPostTask(void)
 					Socket = INVALID_SOCKET;
 					HTTPTimeState--;
 					//putrsUART((ROM char*)"\r\n\r\nTimeout in Remote connection...\r\n");
-					//HttpADCPostPending = 0;
+	
 				}
 				break;
 			}
@@ -176,34 +237,25 @@ void HTTPADCPostTask(void)
 
 			//	TotalReadBytes += 10;
 			LED2_IO = 1;
-			TCPFlush(Socket);
-			// Place the application protocol data into the transmit buffer.  For this example, we are connected to an HTTP server, so we'll send an HTTP GET request.
-			TCPPutString(Socket, (BYTE*)"POST ");
- 			TCPPutString(Socket, RemoteURL);
-			TCPPutString(Socket, (BYTE*)" HTTP/1.1\r\n");
- 			TCPPutString(Socket, (BYTE*)"Host: ");
- 			TCPPutString(Socket, ServerName);
- 			TCPPutString(Socket, (BYTE*)"\r\n");
-		//	TCPPutString(Socket, (BYTE*)"Connection: close");
-		//	TCPPutString(Socket, (BYTE*)"\r\n");
-		//	TCPPutString(Socket, (BYTE*)"Content-Type: text/html");
-			TCPPutString(Socket, (BYTE*)"Content-Type: application/x-www-form-urlencoded");
-			TCPPutString(Socket, (BYTE*)"\r\n");
- 			TCPPutString(Socket, (BYTE*)"Content-Length: ");
-		//	TCPPutString(Socket, (BYTE*)("50"));
-			TCPPutString(Socket, (BYTE*)("51"));
-			buff[0]='P';
-		//	TCPPut(Socket, TotalReadBytesArray[0]);
-		//	TCPPut(Socket, TotalReadBytesArray[1]);
-			TCPPutString(Socket, (BYTE*)"\r\n\n");
-			TCPPutString(Socket, (BYTE*)buff1);
+                        //TCPFlush(Socket);
+			/* Place the application protocol data into the transmit buffer.  For this example, we are connected to an HTTP server, so we'll send an HTTP GET request. #A/M */
+                        putDataHttpPost(Socket,ServerName,ServerPath);
 
-			// Send the packet
+                        // Send the packet
 			TCPFlush(Socket);
-			HTTPTimeState++;
-			break;
+                        DelayMs(10);
+                        if(sense_num==((NUM_SENSORS_)-1)){
+                        //HTTPTimeState = SM_DISCONNECT; /*Disconnect after sending #A/M */
+                            TCPDisconnect(Socket);
+			    Socket = INVALID_SOCKET;
+			    HTTPTimeState = SM_HOME;
+                        }
+                        
+                        flag_http_post = 1;
+                	break;
 
-		case SM_PROCESS_RESPONSE:
+	/* Response from server is not required & hence commented #A/M
+         * case SM_PROCESS_RESPONSE:
 			// Check to see if the remote node has disconnected from us or sent us any application data
 			// If application data is available, write it to the UART
 			LED2_IO = 0;
@@ -225,16 +277,15 @@ void HTTPADCPostTask(void)
             w -= TCPGetArray(Socket, vBuffer, w);
             vBuffer[w] = '\0';
 			//putrsUART(vBuffer);
-		    HTTPTimeState = SM_DISCONNECT;
+		    HTTPTimeState = SM_DONE; // change to SM_DONE
          	break;
-	
+	*/
 		case SM_DISCONNECT:
 			// Close the socket so it can be used by other modules
 			// For this application, we wish to stay connected, but this state will still get entered if the remote server decides to disconnect
 			TCPDisconnect(Socket);
 			Socket = INVALID_SOCKET;
-			HTTPTimeState = SM_DONE;
-			//HttpADCPostPending=0;
+			HTTPTimeState = SM_HOME;
 			LED3_IO=0;
 			LED4_IO=0;
 			break;
@@ -242,8 +293,12 @@ void HTTPADCPostTask(void)
 		case SM_DONE:
 			LED3_IO=1;
 			LED4_IO=1;
-			//DelayMs(1000);
+                                          
 			HTTPTimeState = SM_HOME;
+
+                        /*change state of flag http is posted #A/M */
+                        flag_http_post = 1;
+              
 			break;
 	}
 }

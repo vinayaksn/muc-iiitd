@@ -70,7 +70,7 @@ typedef __attribute__((__deprecated__)) DWORD TICK;
 //#define TICKS_PER_SECOND		(32768ul)								// 32kHz crystal drives timer with no scalar
 
 // Represents one second in Ticks
-#define TICK_SECOND				((QWORD)TICKS_PER_SECOND)
+#define TICK_SECOND				((QWORD)(TICKS_PER_SECOND/4ul)) //divide by 4 to match correct tick frequency #A/M
 // Represents one minute in Ticks
 #define TICK_MINUTE				((QWORD)TICKS_PER_SECOND*60ull)
 // Represents one hour in Ticks

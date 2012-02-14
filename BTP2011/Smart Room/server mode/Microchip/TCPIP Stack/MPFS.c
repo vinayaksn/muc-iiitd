@@ -604,7 +604,7 @@ MPFS MPFSSeek(MPFS offset)
     while(i++ != offset)
         MPFSGet();
 
-    MPFSGetEnd();
+    //MPFSGetEnd();
 
     return _currentHandle;
 }

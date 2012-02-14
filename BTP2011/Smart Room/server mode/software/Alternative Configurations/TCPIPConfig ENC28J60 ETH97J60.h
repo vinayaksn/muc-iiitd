@@ -68,8 +68,8 @@
 #define STACK_USE_UART					// Application demo using UART for IP address display and stack configuration
 //#define STACK_USE_UART2TCP_BRIDGE		// UART to TCP Bridge application example
 //#define STACK_USE_IP_GLEANING
-//#define STACK_USE_ICMP_SERVER			// Ping query and response capability
-//#define STACK_USE_ICMP_CLIENT			// Ping transmission capability
+#define STACK_USE_ICMP_SERVER			// Ping query and response capability
+#define STACK_USE_ICMP_CLIENT			// Ping transmission capability
 #define STACK_USE_HTTP_SERVER			// Old HTTP server
 //#define STACK_USE_HTTP2_SERVER			// New HTTP server with POST, Cookies, Authentication, etc.
 //#define STACK_USE_SSL_SERVER			// SSL server socket support (Requires SW300052)
@@ -83,10 +83,10 @@
 //#define STACK_USE_SNMPV3_SERVER			// Simple Network Management Protocol v3 Agent
 //#define STACK_USE_TFTP_CLIENT			// Trivial File Transfer Protocol client
 //#define STACK_USE_GENERIC_TCP_CLIENT_EXAMPLE	// HTTP Client example in GenericTCPClient.c
-//#define STACK_USE_GENERIC_TCP_SERVER_EXAMPLE	// ToUpper server example in GenericTCPServer.c
+#define STACK_USE_GENERIC_TCP_SERVER_EXAMPLE	// ToUpper server example in GenericTCPServer.c
 //#define STACK_USE_TELNET_SERVER			// Telnet server
 //#define STACK_USE_ANNOUNCE				// Microchip Embedded Ethernet Device Discoverer server/client
-//#define STACK_USE_DNS					// Domain Name Service Client for resolving hostname strings to IP addresses
+#define STACK_USE_DNS					// Domain Name Service Client for resolving hostname strings to IP addresses
 //#define STACK_USE_DNS_SERVER			// Domain Name Service Server for redirection to the local device
 //#define STACK_USE_NBNS					// NetBIOS Name Service Server for repsonding to NBNS hostname broadcast queries
 //#define STACK_USE_REBOOT_SERVER			// Module for resetting this PIC remotely.  Primarily useful for a Bootloader.
@@ -282,19 +282,19 @@
 			WORD wRXBufferSize;
 		} TCPSocketInitializer[] =
 		{
-			{TCP_PURPOSE_GENERIC_TCP_CLIENT, TCP_ETH_RAM, 125, 100},
+                        {TCP_PURPOSE_GENERIC_TCP_CLIENT, TCP_ETH_RAM, 100, 100},
 			{TCP_PURPOSE_GENERIC_TCP_SERVER, TCP_ETH_RAM, 20, 20},
 			{TCP_PURPOSE_TELNET, TCP_ETH_RAM, 200, 150},
 			//{TCP_PURPOSE_TELNET, TCP_ETH_RAM, 200, 150},
 			//{TCP_PURPOSE_TELNET, TCP_ETH_RAM, 200, 150},
 			//{TCP_PURPOSE_FTP_COMMAND, TCP_ETH_RAM, 100, 40},
 			//{TCP_PURPOSE_FTP_DATA, TCP_ETH_RAM, 0, 128},
-			{TCP_PURPOSE_TCP_PERFORMANCE_TX, TCP_ETH_RAM, 200, 1},
+			{TCP_PURPOSE_TCP_PERFORMANCE_TX, TCP_ETH_RAM, 300, 1},
 			//{TCP_PURPOSE_TCP_PERFORMANCE_RX, TCP_ETH_RAM, 40, 1500},
 			{TCP_PURPOSE_UART_2_TCP_BRIDGE, TCP_ETH_RAM, 256, 256},
-			{TCP_PURPOSE_HTTP_SERVER, TCP_ETH_RAM, 200, 200},
-			{TCP_PURPOSE_HTTP_SERVER, TCP_ETH_RAM, 200, 200},
-			{TCP_PURPOSE_DEFAULT, TCP_ETH_RAM, 200, 200},
+			{TCP_PURPOSE_HTTP_SERVER, TCP_ETH_RAM, 300, 200},
+			//{TCP_PURPOSE_HTTP_SERVER, TCP_ETH_RAM, 300, 200},
+			{TCP_PURPOSE_DEFAULT, TCP_ETH_RAM, 800, 300},
 			{TCP_PURPOSE_BERKELEY_SERVER, TCP_ETH_RAM, 25, 20},
 			//{TCP_PURPOSE_BERKELEY_SERVER, TCP_ETH_RAM, 25, 20},
 			//{TCP_PURPOSE_BERKELEY_SERVER, TCP_ETH_RAM, 25, 20},
