@@ -586,7 +586,7 @@ CHAR BigIntCompareROM(BIGINT *a, BIGINT_ROM *b)
 		putrsUART(" |b|:");
 		putulhexUART(w2);
 		putrsUART(" diff:");
-		putulhexUART(s);
+		putulhexUART(adc_value);
 	#endif
 
 	if(magA > magB)

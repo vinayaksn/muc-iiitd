@@ -97,7 +97,8 @@ extern void UpdateSNTPTime(DWORD CurrentTimeInseconds);
 // pool server closest to your geography, but it will still work
 // if you use the global pool.ntp.org address or choose the wrong 
 // one or ship your embedded device to another geography.
-#define NTP_SERVER	"pool.ntp.org"
+//#define NTP_SERVER	"pool.ntp.org"
+#define NTP_SERVER	"192.168.1.250"
 //#define NTP_SERVER	"europe.pool.ntp.org"
 //#define NTP_SERVER	"asia.pool.ntp.org"
 //#define NTP_SERVER	"oceania.pool.ntp.org"
@@ -343,7 +344,7 @@ char buf[10];
 				#if defined (IRREADER)
 //				UpdateSNTPTime(dwSNTPSeconds);
 				#endif
-				char buf[30];
+				//char buf[30];
            		
 		
 		//	sprintf(buf, "%ld\r\n", dwSNTPSeconds );

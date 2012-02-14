@@ -97,12 +97,13 @@ some bugs
 #if defined(STACK_USE_HTTP_SERVER)
 #include "TCPIP Stack/HTTP.h"
 #endif
-static int counter=0;
+
 #define THIS_IS_STACK_APPLICATION
-#define myADC
 // Include all headers for any enabled TCPIP Stack functions
+//#define SMART_ROOM
+
 #include "TCPIP Stack/TCPIP.h"
-//static int count=6500;
+
 #if defined(STACK_USE_ZEROCONF_LINK_LOCAL)
 #include "TCPIP Stack/ZeroconfLinkLocal.h"
 #endif
@@ -112,6 +113,7 @@ static int counter=0;
 
 // Include functions specific to this stack application
 #include "MainDemo.h"
+#include "pic_server.X/SmartRoom.h"
 
 // Used for Wi-Fi assertions
 //#define WF_MODULE_NUMBER   WF_MODULE_MAIN_DEMO
@@ -132,8 +134,7 @@ BYTE AN0String[8];
 // These may or may not be present in all applications.
 static void InitAppConfig(void);
 static void InitializeBoard(void);
-static void ProcessIO3(void);
-void ProcessIO2(void);
+
 
 #if defined(WF_CS_TRIS)
     static void WF_Connect(void);
@@ -147,41 +148,10 @@ void ProcessIO2(void);
 	extern BYTE HttpPostPending;
 #endif
 #if defined (STACK_USE_HTTP_SERVER)
+
     extern WORD HTTPGetVar(BYTE var, WORD ref, BYTE* val);
     extern void HTTPExecCmd(BYTE** argv, BYTE argc);
-    char *arguments [HTTP_MAX_ARGS];
-    void MakeJson(int id,char [],char [],char [],char [],char []);
-    //char actuate[]="{\n\"actuate\":[\n{\"location\":*       },\n{\"appliance\":*     },\n{\"aid\":*   },\n{\"state\":*    },\n{\"ERRCODE\":*  }\n]\n}";
-    char data[]="{\n\"data\":[\n{\"location\":       },\n{\"sensor\":              },\n{\"sid\":     },\n{\"reading\":          },\n{\"ERRCODE\":     }\n]\n}";
-    //char status[]="{\n\"}";
-    //char status[]="{\n\"status\":[\n{\"location\":*       },\n{\"appliance\":*   },\n{\"aid\":*   },\n{\"state\":*    },\n{\"ERRCODE\":*    }\n]\n}";
-      char invalid_query[]="invalid query";
-      char data_url[] = "/data/lab5/temperature/1/1/";
-#endif
-
-#if defined (myADC)
-	//char override[10];
-	int apptime;
-	DWORD ADCLoadTime=0;
-	//int PIR,REED1,REED2,LM,LDR,PIROUT;
-	char temp[10];
-	char* buff;
-        char *buff_url;
-	float s;
-        int i,j;
-        double Avg;
-	//#define ADC_SAMPLE_TIME TICK_SECOND*10
-	//extern void WriteADCbuff();
-	extern void IRTxRxInit();
-	extern unsigned char HttpADCPostPending;
-	extern void HTTPADCPostTask(void);
-	extern void ADCInit();
-	extern void SelectChannel(unsigned int);
-	void number2(float,int);
-	double convert();
-	double ReadADCData();
-	//extern void TCPRecvTask(void);
-#endif
+#endif   
 
 
 
@@ -275,16 +245,9 @@ void main(void)
 int main(void)
 #endif
 {
-    PORTGbits.RG14=1;
-	apptime=10;
-	//char d[]="PIR=0&PIROUT=0&REED1=0&REED2=0&LM=0.0000&LDR=0.0000";  // main sting to be tranferred as POST data
-	//sprintf(override,"2override");
-	//PIR=4;	PIROUT=13;	REED1=21; // the locations of various data insertions
-	//REED2=29;	LM=34;	LDR=45;	  // in the main string being transferred by POST method
-	//buff=d;
-	static DWORD t = 0;
+        static DWORD t = 0;
 //	static DWORD dwLastIP = 0;
-
+        
 	// Initialize application specific hardware
 	InitializeBoard();
 	LED0_IO=1;
@@ -402,12 +365,6 @@ needed
 	IRTxRxInit();
 	#endif
 
-	#if defined (myADC)
-	ADCInit();
-	#endif
-	# if defined (ADC)
-	ADCInit();
-	#endif
 
 
 	// Now that all items are initialized, begin the co-operative
@@ -423,18 +380,26 @@ needed
     // down into smaller pieces so that other tasks can have CPU time.
 
 //	PORTFbits.RF1=1;
+       
     while(1)
     {
-		//buff=d;
-        // Blink LED0 (right most one) every second.
-        if(TickGet() - t >= TICK_SECOND/2ul)
-        {
-            t = TickGet();
-            LED0_IO ^= 1;
-            if((counter<2000))
-			counter++;
+	static WORD call=0;
 
+          if(TickGet() - t >= (TICK_SECOND)/2){
+              
+           // Blink LED0 (right most one) every second.
+           LED0_IO ^= 1;
+           t = TickGet();
+
+           /* call fillData() every second #A/M */
+           call++;
+           if(call==2){
+           fillData();
+           call=0;
+           }
         }
+    
+        
 		/*#if defined (ADC)
 		if(TickGet() - ADCLoadTime >= ADC_SAMPLE_TIME)
 			{
@@ -504,7 +469,10 @@ needed
 		BerkeleyUDPClientDemo();
 		#endif
 
-		//ProcessIO();
+                /*try publish data to server #A/M */
+                #if defined(SMART_ROOM)
+		Publish_Data();
+                #endif
 
 		#if defined (MOTIONSENSE)
 		SampleMotionSensorInput();
@@ -529,9 +497,6 @@ needed
 		if (HttpTagPostPending == 1) HTTPTagPostTask();
 		#endif
 
-		#if defined (ADC)
-		if(HttpADCPostPending == 1) HTTPADCPostTask();
-		#endif
 
         // If the local IP address has changed (ex: due to DHCP lease change)
         // write the new IP address to the LCD display, UART, and Announce
@@ -779,361 +744,10 @@ void DisplayIPValue(IP_ADDR IPVal)
   ***************************************************************************/
 /*static void ProcessIO(void)
 {
-	int k;
-	if(override[0]=='2')
-	{
-		//managing PIR
- 		if(PORTBbits.RB4 ==1)
-		{
-			buff[PIROUT]='1';
-			buff[PIR]='1';
-			counter=0;
-			PORTGbits.RG14=1;
-		}
-		else
-		{
-			buff[PIR]='0';
-			if(counter>=(2*apptime))
-			{
-				buff[PIROUT]='0';
-				PORTGbits.RG14=0;
-				counter=0;
-			}
-		}
-		//END of PIR
-	
-		//REED SENSOR 1
-		if(PORTBbits.RB3==1)
-		{
-			buff[REED1]='1';
-			PORTAbits.RA7=1;
-		}
-		else
-		{
-			buff[REED1]='0';
-			PORTAbits.RA7=0;
-		}
-		//END
-		
-		//REED SENSOR 2
-		if(PORTBbits.RB2==1)
-		{
-			buff[REED2]='1';
-			PORTAbits.RA6=1;
-		}
-		else
-		{
-			buff[REED2]='0';
-			PORTAbits.RA6=0;
-		}
-		//END
-
-		//Reading temperature from AN1
-		SelectChannel(1);
-		s=ReadADCData();  //milivolts divided by 10 for abs temp value
-		s=s*16.67;
-		sprintf(temp,"%f",s);
-		for(k=LM;k<(LM+4);k++)
-			buff[k]=temp[k-LM];
-		//END
-
-		//CURRENT Reading
-		SelectChannel(0);
-		s=ReadADCData();
-		sprintf(temp,"%f",s);
-		for(k=LDR;k<(LDR+4);k++)
-			buff[k]=temp[k-LDR];
-	}
-	else
-	{
-		//managing PIR
- 		if(PORTBbits.RB4 ==1)
-		{
-			buff[PIROUT]='1';
-			buff[PIR]='1';
-			counter=0;
-		}
-		else
-		{
-			buff[PIR]='0';
-			if(counter>=(2*apptime))
-			{
-				buff[PIROUT]='0';
-				counter=0;
-			}
-		}
-		//END of PIR
-	
-		//REED SENSOR 1
-		if(PORTBbits.RB3==1)
-		{
-			buff[REED1]='1';
-		}
-		else
-		{
-			buff[REED1]='0';
-		}
-		//END
-		
-		//REED SENSOR 2
-		if(PORTBbits.RB2==1)
-		{
-			buff[REED2]='1';
-		}
-		else
-		{
-			buff[REED2]='0';
-		}
-		//END
-
-		//Reading temperature from AN1
-		SelectChannel(1);
-		s=ReadADCData();  //milivolts divided by 10 for abs temp value
-		s=s*16.67;
-		sprintf(temp,"%f",s);
-		for(k=LM;k<(LM+4);k++)
-			buff[k]=temp[k-LM];
-		//END
-
-		//CURRENT Reading
-		SelectChannel(0);
-		s=ReadADCData();
-		sprintf(temp,"%f",s);
-		for(k=LDR;k<(LDR+4);k++)
-			buff[k]=temp[k-LDR];
-		//END
-		if(override[0]=='1')  //SET output to 1 as per override
-		{
-			PORTGbits.RG14=1;
-		}
-		else if(override[0]=='0')  //SET output to 0 as per override
-		{
-			PORTGbits.RG14=0;
-		}
-	}
-	//TCPRecvTask();
-	//StackTask();
-	//StackApplications();
-	//HTTPADCPostTask();
 }*/
 
-static void ProcessIO3(void)
-{
-     Avg = 0;
-    for(j=0;j<50;j++){
-		SelectChannel(1);
-		s=ReadADCData();  //milivolts divided by 10 for abs temp value
-		//s=s*16.67;
 
-              Avg +=s;
-        }
-              Avg = Avg/50;
-              Avg = Avg*(.3);
-		sprintf(temp,"%f",Avg);
-                temp[6]='\0';
-                char *cpy = (char *)malloc(sizeof(data_url)+sizeof(temp)+2);
-
-                strcpy(cpy,data_url);
-                strcat(cpy,temp);
-                buff1 = cpy;
-	StackTask();
-	StackApplications();
-	HTTPADCPostTask();
-}
-void ProcessIO2(void)
-{
-    if(strcmp(arguments[0],"actuate")==0)
-    MakeJson(1,arguments[0],arguments[1],arguments[2],arguments[3],arguments[4]);
-
-    else if(strcmp(arguments[0],"data")==0){
-        if(strcmp(arguments[2],"temperature")==0){
-
-            Avg = 0;
-        //Reading temperature from AN1
-        for(i=0;i<50;i++){
-		SelectChannel(1);
-		s=ReadADCData();  //milivolts divided by 10 for abs temp value
-		//s=s*16.67;
-
-              Avg +=s;
-        }
-              Avg = Avg/50;
-              Avg = Avg*(.3);
-		sprintf(temp,"%f",Avg);
-                temp[6]='\0';
-
-          MakeJson(2,arguments[1],arguments[2],arguments[3],temp,"0");
-    }else if(strcmp(arguments[2],"PIR")==0){
-        if(PORTBbits.RB4 == 1)
-		{
-                    MakeJson(2,arguments[1],arguments[2],arguments[3],"1","0");
-			counter=0;
-		}
-		else
-		{
-                        sprintf(temp,"%d",counter);
-                                temp[3]='\0';
-			///	MakeJson(2,arguments[1],arguments[2],arguments[3],temp,"0");
-		if(counter>=(2*apptime))
-			{
-                             //sprintf(temp,"%d",counter);
-                               // temp[3]='\0';
-		MakeJson(2,arguments[1],arguments[2],arguments[3],"0 ",temp);
-				
-			}else
-                    MakeJson(2,arguments[1],arguments[2],arguments[3],"1 ",temp);
-		}
-		//END of PIR
-    }
-    }
-    else if(strcmp(arguments[0],"status")==0)
     
-        MakeJson(3,arguments[2],arguments[3],arguments[4],arguments[5],arguments[6]);
-    else
-    
-        buff = invalid_query;
-    
-
-
-}
-    /*	if(override[0]=='2')
-	{
-		//managing PIR
- 		if(PORTBbits.RB4 ==1)
-		{
-			buff[PIROUT]='1';
-			buff[PIR]='1';
-			counter=0;
-			PORTGbits.RG14=1;
-		}
-		else
-		{
-			buff[PIR]='0';
-			if(counter>=(2*apptime))
-			{
-				buff[PIROUT]='0';
-				PORTGbits.RG14=0;
-				counter=0;
-			}
-		}
-		//END of PIR
-
-		//REED SENSOR 1
-		if(PORTBbits.RB3==1)
-		{
-			buff[REED1]='1';
-			PORTAbits.RA7=1;
-		}
-		else
-		{
-			buff[REED1]='0';
-			PORTAbits.RA7=0;
-		}
-		//END
-
-		//REED SENSOR 2
-		if(PORTBbits.RB2==1)
-		{
-			buff[REED2]='1';
-			PORTAbits.RA6=1;
-		}
-		else
-		{
-			buff[REED2]='0';
-			PORTAbits.RA6=0;
-		}
-		//END
-
-		//Reading temperature from AN1
-		SelectChannel(1);
-		s=ReadADCData();  //milivolts divided by 10 for abs temp value
-		s=s*16.67;
-		sprintf(temp,"%f",s);
-		for(k=LM;k<(LM+4);k++)
-			buff[k]=temp[k-LM];
-		//END
-
-		//CURRENT Reading
-		SelectChannel(0);
-		s=ReadADCData();
-		sprintf(temp,"%f",s);
-		for(k=LDR;k<(LDR+4);k++)
-			buff[k]=temp[k-LDR];
-	}
-	else
-	{
-		//managing PIR
- 		if(PORTBbits.RB4 ==1)
-		{
-			buff[PIROUT]='1';
-			buff[PIR]='1';
-			counter=0;
-		}
-		else
-		{
-			buff[PIR]='0';
-			if(counter>=(2*apptime))
-			{
-				buff[PIROUT]='0';
-				counter=0;
-			}
-		}
-		//END of PIR
-
-		//REED SENSOR 1
-		if(PORTBbits.RB3==1)
-		{
-			buff[REED1]='1';
-		}
-		else
-		{
-			buff[REED1]='0';
-		}
-		//END
-
-		//REED SENSOR 2
-		if(PORTBbits.RB2==1)
-		{
-			buff[REED2]='1';
-		}
-		else
-		{
-			buff[REED2]='0';
-		}
-		//END
-
-		//Reading temperature from AN1
-		SelectChannel(1);
-		s=ReadADCData();  //milivolts divided by 10 for abs temp value
-		s=s*16.67;
-		sprintf(temp,"%f",s);
-		for(k=LM;k<(LM+4);k++)
-			buff[k]=temp[k-LM];
-		//END
-
-		//CURRENT Reading
-		SelectChannel(0);
-		s=ReadADCData();
-		sprintf(temp,"%f",s);
-		for(k=LDR;k<(LDR+4);k++)
-			buff[k]=temp[k-LDR];
-		//END
-		if(override[0]=='1')  //SET output to 1 as per override
-		{
-			PORTGbits.RG14=1;
-		}
-		else if(override[0]=='0')  //SET output to 0 as per override
-		{
-			PORTGbits.RG14=0;
-		}
-	}
-	//TCPRecvTask();
-//	StackTask();
-//	StackApplications();
-//	HTTPADCPostTask();
-     */
-
-
 /****************************************************************************
   Function:
     static void InitializeBoard(void)
@@ -1507,34 +1121,11 @@ which is needed for ENC28J60 commnications
 	SPIFlashInit();
 #endif
 
+/*call initialize pins functions for smart room spedific configuration #A/M */
+#ifdef SMART_ROOM
+        Initialize_Pins();
 
-// my declarations not in the original demo code
-// input declarations ......
-	AD1PCFGbits.PCFG4=1; // setting digital i/p for PIR sensor at AN4 , pin 2 on board
-	TRISBbits.TRISB4=1;  // specify AN4, pin 2 as input for PIR
-	AD1PCFGbits.PCFG3=1; // setting digital i/p for REED-1 sensor at AN3 , pin 3 on board
-	TRISBbits.TRISB3=1;  // specify AN3, pin 3 as input for REED-1
-	AD1PCFGbits.PCFG2=1; // setting digital i/p for REED-2 sensor at AN2 , pin 4 on board
-	TRISBbits.TRISB2=1;  // specify AN2, pin 4 as input for REED-2
-	AD1PCFGbits.PCFG1=0; // setting analog input on AN1, Pin 5 on board, for LM35
-//	TRISBbits.TRISB3=1;  // specify AN1 as input for temperature..
-	AD1PCFGbits.PCFG0=0; // setting AN0, pin 6 on board, analog for LDR sensor
-//	TRISBbits.TRISB0=1;  // specify AN0 as input for LDR
-	// end of input declarations........
-	AD1PCFGbits.PCFG11=1;
-	TRISBbits.TRISB11=0;
-	PORTBbits.RB11=1;
-	TRISFbits.TRISF1=0;
-	PORTFbits.RF1=1;
-	//Output Declarations .............
-	TRISGbits.TRISG14=0; // output on RG14 for PIR sensor
-	TRISAbits.TRISA7=0; // output on RA7 for REED-1
-	TRISAbits.TRISA6=0; // output on RA6 for REED-2
-	TRISGbits.TRISG0=0; // output on RG0 for LM35
-	TRISGbits.TRISG1=0; // output on RG1 for current
-	// end of output declarations .......
-
-
+#endif
 }
 
 /*********************************************************************
@@ -1794,169 +1385,4 @@ void SaveAppConfig(const APP_CONFIG *ptrAppConfig)
 #endif
 
 
-
-#if defined(myADC)
-	/* function ADCInit .... return type void ...... arguments void
-		Setings::
-			Initializes the ADC module
-			Conversion starts when we set the SAMP bit to 1 and ends after 31Tad
-			After Conversion DONE bit goes high and the data ca be read from ADC1BUF0
-	*/
-	void ADCInit()
-	{
-		AD1CON1bits.ADON=0;
-		AD1CON1 = 0x00E0; // SSRC<2:0> = 111 implies internal counter ends sampling and starts converting.
-		AD1CSSL = 0;
-		AD1CON3 = 0x1F02; // Sample time = 31Tad, Tad = 3Tcy
-		AD1CON2 = 0;
-		AD1CON1bits.ADON=1; //TURNING ON A/D MODULE
-	}
-
-
-	/* function SelectChannel ...... return type: void ............... arguments : int [the pin no. to be read]
-			Used the select the ADC or PORTB pin currently being read from
-	*/
-	void SelectChannel(unsigned int I)
-	{
-		AD1CON1bits.ADON=0;
-		AD1CHS=(I&0x000f);
-		AD1CON1bits.ADON=1;
-	}
-
-
-
-	/*function convert..... return: double ...... arguments: void
-		to get float temperature value from ADC buffer reading
-	*/
-	double convert(void)
-	{
-		int adc;
-		adc=ADC1BUF0;
-		adc=adc&(0x03ff); // trim the leading 6bits
-		//double k=(double)adc*0.00319;
-
-		return adc;
-	}
-
-
-
-	/*function ReadADCData..... return: double ...... arguments: void
-		used to read the sampled ADC value of the currently selected channel
-		NOTE:: it is important to call SelectChannel else the 0th pin will be sampled
-	*/
-	double ReadADCData()
-	{
-			AD1CON1bits.SAMP=1; // enable=1 FOR SAMPLING
-			while(AD1CON1bits.DONE==0); // wait till the sampling is complete
-			
-			//double t=  // get the value of buffer as float
-			return(convert());
-	}
-
-void MakeJson(int id,char str1[],char str2[],char str3[],char str4[],char str5[]){
-
-
-				if(id==1){
-
-					//buff = actuate;
-				//strcpy(json,actuate);
-				}else if(id==2){
-					buff = data;
-					//strcpy(json,data);
-				}
-				else if(id==3){
-					//buff = status;
-					//strcpy(json,status);
-				}else{ return ;
-				}
-
-			int i,j,count=0;
-			int len = strlen(buff);
-			for(i=0;i<len;i++)
-			{
-
-				if(buff[i]==':'){
-
-					count++;
-                                        i++;
-					switch(count){
-                               				case 2: {
-									int len1 = strlen(str1);
-									if(len1>0){
-                                                                            buff[i++]='"';
-									for(j=0;j<len1;i++,j++)
-                                                                        buff[i] = str1[j];
-                                                                            buff[i++]='"';
-                                                                        while(buff[i]!='}')
-                                                                        {
-                                                                            buff[i++]=' ';
-                                                                        }}
-									break;
-								}
-							case 3: {
-									int len2 = strlen(str2);
-									if(len2>0){
-                                                                            buff[i++]='"';
-									for(j=0;j<len2;i++,j++)
-									buff[i] = str2[j];
-                                                                            buff[i++]='"';
-                                                                        while(buff[i]!='}')
-                                                                        {
-                                                                            buff[i++]=' ';
-                                                                        }
-                                                                        }
-									break;
-								}
-							case 4: {
-									int len3 = strlen(str3);
-									if(len3>0){
-                                                                            buff[i++]='"';
-
-									for(j=0;j<len3;i++,j++)
-									buff[i] = str3[j];
-                                                                            buff[i++]='"';
-                                                                        while(buff[i]!='}')
-                                                                        {
-                                                                            buff[i++]=' ';
-                                                                        }
-                                                                        }
-									break;
-								}
-							case 5: {
-									int len4  = strlen(str4);
-									if(len4>0){
-                                                                            buff[i++]='"';
-									for(j=0;j<len4;i++,j++)
-									buff[i] = str4[j];
-                                                                            buff[i++]='"';
-                                                                        while(buff[i]!='}')
-                                                                        {
-                                                                            buff[i++]=' ';
-                                                                        }
-                                                                        }
-									break;
-								}
-							case 6: {
-									int len5 =strlen(str5);
-									if(len5>0){
-                                                                            buff[i++]='"';
-									for(j=0;j<len5;i++,j++)
-									buff[i] = str5[j];
-                                                                            buff[i++]='"';
-                                                                        while(buff[i]!='}')
-                                                                        {
-                                                                            buff[i++]=' ';
-                                                                        }
-                                                                        }
-									break;
-								}
-
-							default : break;
-
-							}
-				//printf("\nobject: %s \n =============\n",json);
-					}
-			}
-}
-#endif
 

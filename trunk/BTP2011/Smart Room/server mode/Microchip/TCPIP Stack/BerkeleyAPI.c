@@ -54,7 +54,7 @@
 
 #include "TCPIP Stack/TCPIP.h"
 
-static BOOL HandlePossibleTCPDisconnection(SOCKET s);
+static BOOL HandlePossibleTCPDisconnection(SOCKET adc_value);
 
 
 #if defined(__18CXX) && !defined(HI_TECH_C)	
@@ -93,12 +93,12 @@ static WORD gAutoPortNumber = 1024;
   ***************************************************************************/
 void BerkeleySocketInit(void)
 {
-	unsigned int s;
+	unsigned int adc_value;
 	struct BSDSocket *socket;
 
-	for ( s = 0; s < BSD_SOCKET_COUNT; s++ )
+	for ( adc_value = 0; adc_value < BSD_SOCKET_COUNT; adc_value++ )
 	{
-		socket             = (struct BSDSocket *)&BSDSocketArray[s];
+		socket             = (struct BSDSocket *)&BSDSocketArray[adc_value];
 		socket->bsdState   = SKT_CLOSED;
 	}
 }
@@ -132,12 +132,12 @@ void BerkeleySocketInit(void)
 SOCKET socket( int af, int type, int protocol )
 {
 	struct BSDSocket *socket = BSDSocketArray;
-	SOCKET s;
+	SOCKET adc_value;
 
 	if( af != AF_INET )
 		return INVALID_SOCKET;
 
-	for( s = 0; s < BSD_SOCKET_COUNT; s++,socket++ )
+	for( adc_value = 0; adc_value < BSD_SOCKET_COUNT; adc_value++,socket++ )
 	{
 		if( socket->bsdState != SKT_CLOSED ) //socket in use
 			continue;
@@ -147,12 +147,12 @@ SOCKET socket( int af, int type, int protocol )
 		if( type == SOCK_DGRAM && protocol == IPPROTO_UDP )
 		{
 			socket->bsdState = SKT_CREATED;
-			return s;
+			return adc_value;
 		}
 		else if( type == SOCK_STREAM && protocol == IPPROTO_TCP )
 		{
 			socket->bsdState = SKT_CREATED;
-			return s;
+			return adc_value;
 		}
 		else
 			return INVALID_SOCKET;
@@ -191,16 +191,16 @@ SOCKET socket( int af, int type, int protocol )
   Remarks:
 	None.
   ***************************************************************************/
-int bind( SOCKET s, const struct sockaddr* name, int namelen )
+int bind( SOCKET adc_value, const struct sockaddr* name, int namelen )
 {
 	struct BSDSocket *socket;
 	struct sockaddr_in *local_addr;
 	WORD lPort;
 
-	if( s >= BSD_SOCKET_COUNT )
+	if( adc_value >= BSD_SOCKET_COUNT )
 		return SOCKET_ERROR;
 
-	socket = &BSDSocketArray[s];
+	socket = &BSDSocketArray[adc_value];
 
 	if( socket->bsdState != SKT_CREATED ) //only work with recently created socket
 		return SOCKET_ERROR;
@@ -264,17 +264,17 @@ int bind( SOCKET s, const struct sockaddr* name, int namelen )
   Remarks:
 	None
   ***************************************************************************/
-int listen( SOCKET s, int backlog )
+int listen( SOCKET adc_value, int backlog )
 {
 	struct BSDSocket *ps;
 	SOCKET clientSockID;
 	unsigned int socketcount;
 	unsigned char assigned;
 
-	if( s >= BSD_SOCKET_COUNT )
+	if( adc_value >= BSD_SOCKET_COUNT )
 		return SOCKET_ERROR;
 
-	ps = &BSDSocketArray[s];
+	ps = &BSDSocketArray[adc_value];
 
 	if(ps->SocketType != SOCK_STREAM)
 		return SOCKET_ERROR;
@@ -352,7 +352,7 @@ int listen( SOCKET s, int backlog )
   Remarks:
 	None.
   ***************************************************************************/
-SOCKET accept(SOCKET s, struct sockaddr* addr, int* addrlen)
+SOCKET accept(SOCKET adc_value, struct sockaddr* addr, int* addrlen)
 {
 	struct BSDSocket *pListenSock;
 	SOCKET_INFO *remoteSockInfo;
@@ -360,10 +360,10 @@ SOCKET accept(SOCKET s, struct sockaddr* addr, int* addrlen)
 	unsigned int sockCount;
 	TCP_SOCKET hTCP;
 
-	if( s >= BSD_SOCKET_COUNT )
+	if( adc_value >= BSD_SOCKET_COUNT )
 		return INVALID_SOCKET;
 
-	pListenSock = &BSDSocketArray[s]; /* Get the pointer to listening server socket */
+	pListenSock = &BSDSocketArray[adc_value]; /* Get the pointer to listening server socket */
 
 	if ( pListenSock->bsdState != SKT_BSD_LISTEN )
 		return INVALID_SOCKET;
@@ -441,7 +441,7 @@ SOCKET accept(SOCKET s, struct sockaddr* addr, int* addrlen)
   Remarks:
 	None.
   ***************************************************************************/
-int connect( SOCKET s, struct sockaddr* name, int namelen )
+int connect( SOCKET adc_value, struct sockaddr* name, int namelen )
 {
 	struct BSDSocket *socket;
 	struct sockaddr_in *addr;
@@ -449,10 +449,10 @@ int connect( SOCKET s, struct sockaddr* name, int namelen )
 	WORD remotePort;
 	WORD localPort;
 
-	if( s >= BSD_SOCKET_COUNT )
+	if( adc_value >= BSD_SOCKET_COUNT )
 		return SOCKET_ERROR;
 
-	socket = &BSDSocketArray[s];
+	socket = &BSDSocketArray[adc_value];
 
 	if( socket->bsdState < SKT_CREATED )
 		return SOCKET_ERROR;
@@ -475,7 +475,7 @@ int connect( SOCKET s, struct sockaddr* name, int namelen )
 			return 0; // already established
 
 		case SKT_IN_PROGRESS:
-			if(HandlePossibleTCPDisconnection(s))
+			if(HandlePossibleTCPDisconnection(adc_value))
 				return SOCKET_ERROR;
 
 			if(!TCPIsConnected(socket->SocketID))
@@ -559,9 +559,9 @@ int connect( SOCKET s, struct sockaddr* name, int namelen )
   Remarks:
 	None.
   ***************************************************************************/
-int send( SOCKET s, const char* buf, int len, int flags )
+int send( SOCKET adc_value, const char* buf, int len, int flags )
 {
-	return sendto(s, buf, len, flags, NULL, 0);
+	return sendto(adc_value, buf, len, flags, NULL, 0);
 }
 
 /*****************************************************************************
@@ -597,7 +597,7 @@ int send( SOCKET s, const char* buf, int len, int flags )
   Remarks:
 	None.
   ***************************************************************************/
-int sendto( SOCKET s, const char* buf, int len, int flags, const struct sockaddr* to, int tolen )
+int sendto( SOCKET adc_value, const char* buf, int len, int flags, const struct sockaddr* to, int tolen )
 {
 	struct BSDSocket *socket;
 	int size = SOCKET_ERROR;
@@ -606,10 +606,10 @@ int sendto( SOCKET s, const char* buf, int len, int flags, const struct sockaddr
 	WORD wRemotePort;
 	struct sockaddr_in local;
 
-	if( s >= BSD_SOCKET_COUNT )
+	if( adc_value >= BSD_SOCKET_COUNT )
 		return SOCKET_ERROR;
 
-	socket = &BSDSocketArray[s];
+	socket = &BSDSocketArray[adc_value];
 
 	if(socket->bsdState == SKT_CLOSED)
 		return SOCKET_ERROR;
@@ -630,7 +630,7 @@ int sendto( SOCKET s, const char* buf, int len, int flags, const struct sockaddr
 			if(socket->bsdState == SKT_CREATED)
 			{
 				memset(&local, 0x00, sizeof(local));
-				if(bind(s, (struct sockaddr*)&local, sizeof(local)) == SOCKET_ERROR)
+				if(bind(adc_value, (struct sockaddr*)&local, sizeof(local)) == SOCKET_ERROR)
 					return SOCKET_ERROR;
 			}
 		}
@@ -672,7 +672,7 @@ int sendto( SOCKET s, const char* buf, int len, int flags, const struct sockaddr
 		if(socket->bsdState != SKT_EST)
 			return SOCKET_ERROR;
 
-		if(HandlePossibleTCPDisconnection(s))
+		if(HandlePossibleTCPDisconnection(adc_value))
 			return SOCKET_ERROR;
 			
 		// Handle special case were 0 return value is okay
@@ -726,21 +726,21 @@ int sendto( SOCKET s, const char* buf, int len, int flags, const struct sockaddr
   Remarks:
 	None.
   ***************************************************************************/
-int recv( SOCKET s, char* buf, int len, int flags )
+int recv( SOCKET adc_value, char* buf, int len, int flags )
 {
 	struct BSDSocket *socket;
 
-	if( s >= BSD_SOCKET_COUNT )
+	if( adc_value >= BSD_SOCKET_COUNT )
 		return SOCKET_ERROR;
 
-	socket = &BSDSocketArray[s];
+	socket = &BSDSocketArray[adc_value];
 
 	if(socket->SocketType == SOCK_STREAM) //TCP
 	{
 		if(socket->bsdState != SKT_EST)
 			return SOCKET_ERROR;
 
-		if(HandlePossibleTCPDisconnection(s))
+		if(HandlePossibleTCPDisconnection(adc_value))
 			return SOCKET_ERROR;
 
 		return TCPGetArray(socket->SocketID, (BYTE*)buf, len);
@@ -796,13 +796,13 @@ int recv( SOCKET s, char* buf, int len, int flags )
   Remarks:
 	None.
   ***************************************************************************/
-int recvfrom( SOCKET s, char* buf, int len, int flags, struct sockaddr* from, int* fromlen )
+int recvfrom( SOCKET adc_value, char* buf, int len, int flags, struct sockaddr* from, int* fromlen )
 {
 	struct BSDSocket *socket;
 	struct sockaddr_in *rem_addr;
 	SOCKET_INFO *remoteSockInfo;
 
-	socket = &BSDSocketArray[s];
+	socket = &BSDSocketArray[adc_value];
 	rem_addr = (struct sockaddr_in *)from;
 
 	if(socket->SocketType == SOCK_DGRAM) //UDP
@@ -842,7 +842,7 @@ int recvfrom( SOCKET s, char* buf, int len, int flags, struct sockaddr* from, in
 				*fromlen = sizeof(struct sockaddr_in);
 			}
 		}
-		return recv(s, buf, len, 0);
+		return recv(adc_value, buf, len, 0);
 	}
 	return 0;
 }
@@ -924,15 +924,15 @@ int gethostname(char* name, int namelen)
   Remarks:
 	None.
   ***************************************************************************/
-int closesocket( SOCKET s )
+int closesocket( SOCKET adc_value )
 {	
 	BYTE i;
 	struct BSDSocket *socket;
 
-	if( s >= BSD_SOCKET_COUNT )
+	if( adc_value >= BSD_SOCKET_COUNT )
 		return SOCKET_ERROR;
 
-	socket = &BSDSocketArray[s];
+	socket = &BSDSocketArray[adc_value];
 
 	if(socket->bsdState == SKT_CLOSED)
 		return 0;	// Nothing to do, so return success
@@ -1023,13 +1023,13 @@ int closesocket( SOCKET s )
 	FALSE - Socket is 
 
   ***************************************************************************/
-static BOOL HandlePossibleTCPDisconnection(SOCKET s)
+static BOOL HandlePossibleTCPDisconnection(SOCKET adc_value)
 {
 	struct BSDSocket *socket;
 	BYTE i;
 	BOOL bSocketWasReset;
 
-	socket = &BSDSocketArray[s];
+	socket = &BSDSocketArray[adc_value];
 
 	// Nothing to do if disconnection has already been handled
 	if(socket->bsdState == SKT_DISCONNECTED)

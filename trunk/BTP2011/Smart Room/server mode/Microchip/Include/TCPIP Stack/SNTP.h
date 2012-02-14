@@ -51,7 +51,7 @@
 #ifndef __SNTP_H
 #define __SNTP_H
 
-void SNTPClient(void);
+VOID SNTPClient(VOID);
 DWORD SNTPGetUTCSeconds(void);
 
 #endif

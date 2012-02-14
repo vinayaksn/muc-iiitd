@@ -61,6 +61,9 @@
 #define __HTTP_C
 
 #include "TCPIPConfig.h"
+
+#include "pic_server.X/SmartRoom.h" // #AM
+
 #if defined(STACK_USE_HTTP_SERVER)
 
 #include "TCPIP Stack/TCPIP.h"
@@ -126,7 +129,7 @@ static ROM HTTP_CONTENT httpContents[] =
     { "audio/x-wave" },          // HTTP_WAV
 	{ "" }						 // HTTP_UNKNOWN
 };
-#define TOTAL_HTTP_CONTENTS     ( sizeof(httpContents)/sizeof(httpConetents[0]) )
+#define TOTAL_HTTP_CONTENTS     ( sizeof(httpContents)/sizeof(httpContents[0]) )
 
 // HTTP FSM states for each connection.
 typedef enum
@@ -134,7 +137,7 @@ typedef enum
     SM_HTTP_IDLE = 0u,
     SM_HTTP_GET,
     SM_HTTP_NOT_FOUND,
-    SM_HTTP_GET_JSON,
+    SM_HTTP_GET_JSON, // STATE for JSON support #A/M
     SM_HTTP_GET_READ,
     SM_HTTP_GET_PASS,
     SM_HTTP_GET_DLE,
@@ -150,7 +153,6 @@ typedef enum
 {
     HTTP_GET = 0u,
     HTTP_POST,
-    HTTP_SET,
     HTTP_NOT_SUPPORTED,
     HTTP_INVALID_COMMAND
 } HTTP_COMMAND;
@@ -183,15 +185,13 @@ static ROM BYTE * ROM HTTPMessages[] =
 	    (ROM BYTE*)"HTTP/1.1 503 \r\n\r\nService Unavailable\r\n"
 };
 
-//ROM BYTE BUF[]="\r\nhello_world.\r\n";
-#define BUF_LEN (sizeof(BUF)-1)
-//extern char *buff;
-//char status[]="{\r\n\"status\":[\r\n{\"location\":* },\r\n{\"appliance\":*},\r\n{\"aid\":*},\r\n{\"state\":* },\r\n{\"ERRCODE\":* }\r\n]\r\n}";
 
-extern char *arguments[HTTP_MAX_ARGS];
-extern char* buff;
-extern void ProcessIO2();
-#define CONTENT_LENGTH(data) (sizeof(data)-1)
+#ifdef SMART_ROOM  // #A/M
+extern char* arguments[HTTP_MAX_ARGS]; /*defined in SmartRoom.c, Holds arguments of GET request*/
+extern char* Buff_Json; /*defined in SmartRoom.c, Holds JSON ojbect to send as response*/
+extern void Build_Json_Response(); /*defined in SmartRoom.c, main function to process request*/
+#endif
+
 // Standard HTTP messages.
 static ROM BYTE HTTP_OK_STRING[] = "HTTP/1.1 200 OK\r\nContent-type: ";
 static ROM BYTE HTTP_OK_NO_CACHE_STRING[] = "HTTP/1.1 200 OK\r\nDate: Wed, 05 Apr 2006 02:53:05 GMT\r\nExpires: Wed, 05 Apr 2006 02:52:05 GMT\r\nCache-control: private\r\nContent-type: ";
@@ -221,11 +221,17 @@ static HTTP_INFO HCB[MAX_HTTP_CONNECTIONS];
 
 
 static void HTTPProcess(HTTP_HANDLE h);
+
+/* Not required for Smart Room implementation #A/M */
 static HTTP_COMMAND HTTPParse(BYTE *string,
                               BYTE** arg,
                               BYTE* argc,
                               BYTE* type);
-static HTTP_COMMAND Parser(char *str,BYTE* argc);
+
+/*Parser to extract arguments from GET request URL #A/M */
+static HTTP_COMMAND Parser(unsigned char *str,BYTE* argc);
+
+/* Not required for Smart Room implementation #A/M */
 static BOOL SendFile(HTTP_INFO* ph);
 
 
@@ -316,9 +322,8 @@ static void HTTPProcess(HTTP_HANDLE h)
     BYTE httpData[MAX_HTML_CMD_LEN+1];
     HTTP_COMMAND httpCommand;
     BOOL lbContinue;
-//    BYTE *arg[MAX_HTTP_ARGS];
+//    BYTE *arg[MAX_HTTP_ARGS]; #A/M (Not required for smart room)
     BYTE argc;
-//    BYTE tempargc[2];
     HTTP_INFO* ph;
 	WORD w;
 
@@ -359,37 +364,31 @@ static void HTTPProcess(HTTP_HANDLE h)
 				w = sizeof(httpData)-1;
 
 			TCPGetArray(ph->socket, httpData, w);
+                        
             httpData[w] = '\0';
             TCPDiscard(ph->socket);
 
             ph->smHTTP = SM_HTTP_NOT_FOUND;
-            //argc = MAX_HTTP_ARGS;
-            //httpCommand = HTTPParse(httpData, arg, &argc, &ph->fileType);
+            //argc = MAX_HTTP_ARGS; #A/M
+            //httpCommand = HTTPParse(httpData, arg, &argc, &ph->fileType); #A/M
             argc = 0u;
-           httpCommand = Parser(httpData,&argc);
+           httpCommand = Parser(httpData,&argc); /* Use Parser #A/M */
            
-            if ( httpCommand == HTTP_GET || httpCommand == HTTP_SET)
+            if ( httpCommand == HTTP_GET)
             {
                 // If there are any arguments, this must be a remote command.
-                // Execute it and then send the file.
-                // The file name may be modified by command handler.
+                // check if arguments are enough to process or not #A/M
                 if ( argc >= 5u )
                 {
-                    // Let main application handle this remote command.
-                    //HTTPExecCmd(&arg[0], argc);
-
-                    // Command handler must have modified arg[0] which now
-                    // points to actual file that will be sent as a result of
-                    // this remote command.
-
-                    // Assume that Web author will only use CGI or HTML
-                    // file for remote command.
-                    ph->fileType = HTTP_CGI;
-                    ph->Variable = HTTP_NOT_FOUND;
                  ph->smHTTP = SM_HTTP_GET_JSON;
                 }
-            }else
+                else
                 ph->smHTTP = SM_HTTP_NOT_FOUND;
+            }
+             else
+                ph->smHTTP = SM_HTTP_NOT_FOUND;
+
+           // comment out MPFS implementation as it is not required # A/M
                 /*ph->file = MPFSOpen(arg[0]);
                 if ( ph->file == MPFS_INVALID)
                 {
@@ -443,47 +442,31 @@ static void HTTPProcess(HTTP_HANDLE h)
                 ph->smHTTP = SM_HTTP_GET;
             }
             break;
+
+    /*case SM_HTTP_GET_JSON added to support smartroom type JSON objects #A/M */
       case SM_HTTP_GET_JSON:
             {
  
-                
+                /* check whether socket is ready or not */
               if(TCPIsPutReady(ph->socket)){
-   //               k++;
-                  ProcessIO2();
+                  
+                  /*call function to process arguments extracted by parser*/
+                Build_Json_Response();
+
+                  /*Put headers for HTTP response */
                 TCPPutROMArray(ph->socket, (ROM BYTE*)HTTP_OK_STRING, HTTP_OK_STRING_LEN);
                 TCPPutROMString(ph->socket,"application/json");
-
                 TCPPutROMArray(ph->socket, (ROM BYTE*)HTTP_HEADER_END_STRING, HTTP_HEADER_END_STRING_LEN);
+                             
+                /*Put JSON compiled by Build_Json_Response call*/
+                TCPPutROMString(ph->socket,Buff_Json);
                 
-                //TCPPutROMString(ph->socket,"argument = ");
-                /*BYTE i;
-                for(i=0;i<argc;i++){
-                TCPPutROMString(ph->socket,",");
-                TCPPutROMString(ph->socket,arguments[i]);
-               
-                }*/
-                 //TCPPutROMString(ph->socket, "\r\n");
-                TCPPutROMString(ph->socket,buff);
+                //send and Disconnect
+                 TCPFlush(ph->socket);
+                 TCPDisconnect(ph->socket);
 
-
-
-                //BYTE i;
-                /*for(i=0;i<argc;i++){
-                TCPPutROMString(ph->socket,"argument ");
-                //TCPPutROMString(ph->socket,i);
-                TCPPutROMString(ph->socket,"=");
-                TCPPutROMString(ph->socket, (char *)arguments[i]);
-                TCPPutROMString(ph->socket, "\r\n");
-                }*/
-                //TCPPutROMString(ph->socket, (char *)arguments[2]);
-                //TCPPutROMString(ph->socket, (char *)arguments[3]);
-              //  TCPPutROMArray(ph->socket, (ROM BYTE*)tempargc, 1);
-                //TCPPutROMString(ph->socket, (char *)arguments[0]);
-                //TCPPutROMString(ph->socket, (char *)arguments[1]);
-				//TCPPutROMArray(ph->socket, (ROM BYTE*)BUF, BUF_LEN);
-				TCPFlush(ph->socket);
-				TCPDisconnect(ph->socket);
-				ph->smHTTP = SM_HTTP_IDLE;
+                //change state to idle
+                ph->smHTTP = SM_HTTP_IDLE;
               }
             break;
             }
@@ -668,6 +651,7 @@ static BOOL SendFile(HTTP_INFO* ph)
  *
  *                  This parses does not "de-escape" URL string.
  ********************************************************************/
+/*
 static HTTP_COMMAND HTTPParse(BYTE *string,
                             BYTE** arg,
                             BYTE* argc,
@@ -727,11 +711,7 @@ static HTTP_COMMAND HTTPParse(BYTE *string,
         case SM_PARSE_ARG:
             arg[i++] = string;
             smParse = SM_PARSE_ARG_FORMAT;
-            /*
-             * Do not break.
-             * Parameter may be empty.
-             */
-
+           
         case SM_PARSE_ARG_FORMAT:
             c = *string;
             if ( c == '?' || c == '&' )
@@ -741,9 +721,11 @@ static HTTP_COMMAND HTTPParse(BYTE *string,
             }
             else
             {
+
                 // Recover space characters.
                 if ( c == '+' )
                     *string = ' ';
+
 
                 // Remember where file extension starts.
                 else if ( c == '.' && i == 1u )
@@ -799,42 +781,67 @@ static HTTP_COMMAND HTTPParse(BYTE *string,
 
     return cmd;
 }
+*/
+
+/************************************************************************
+ * Function : static HTTP_COMMAND Parser(unsigned char *str,BYTE* argc)
+ *
+ * Description :
+ *
+ * Parser defined to extract arguments from HTTP GET URL
+ *
+ *          eg.  : GET /data/faculty_room/temperature/1/reading
+ *                  would be filled as below:
+ *                          arguments[0] => data
+ *                          arguments[1] => faculty_room (location)
+ *                          arguments[2] => temperature(sensor name)
+ *                          arguments[3] => 1 (sensor_id)
+ *                          arguments[4] => reading
+ *                          argc = 5
+ *
+ * Parameters :
+ *    str - url to parse
+ *    argc - No. of arguments
+ *
+ * Return :
+ *   HTTP_COMMAND - type of command
+ *
+ * Author :
+ *  # A/M
+ *
+ *****************************************************************************/
 
 
-//modified http_Parse function
-static HTTP_COMMAND Parser(char *str,BYTE* argc){
+static HTTP_COMMAND Parser(unsigned char *str,BYTE* argc){
 
-//printf("parser called");
-
-    for(*argc = 0;argc< HTTP_MAX_ARGS; (*argc)++) {
-	//printf("\n%s\n",result);
+    // flush all previous pointers
+    for((*argc) = 0;argc < HTTP_MAX_ARGS; (*argc)++) {
     arguments[(*argc)]="\0";
-}
-char delims[] =" ";
-char *result = NULL;
-HTTP_COMMAND cmd = HTTP_INVALID_COMMAND;
+    }
 
 
-result = strtok(str, delims);
+    char delims[] =" ";
+    unsigned char *result = NULL;
 
-if((strcmp(result,"GET")==0))
-cmd = HTTP_GET;
-else if((strcmp(result,"SET")==0))
-cmd = HTTP_SET;
-else{
-return cmd;
-}
+    HTTP_COMMAND cmd = HTTP_INVALID_COMMAND;
 
+    //tokenize url by space " "
+    result = strtok(str, delims);
 
+    if((strcmp(result,"GET")==0))
+    cmd = HTTP_GET;
+    else{
+    return cmd;
+    }
+        // change tokenizer to '/'
 
-//printf("\n%s\n",result);
- result = strtok(NULL,"/");
-for(*argc = 0;result != NULL; (*argc)++) {
-	//printf("\n%s\n",result);
-    arguments[(*argc)] = result;
-         //strcpy(arguments[(*argc)],result);
-    result = strtok( NULL,"/");
-}
+        result = strtok(NULL,"/");
+
+        /*fill arguments to arguments array */
+        for(*argc = 0;result != NULL; (*argc)++) {
+            arguments[(*argc)] = result;
+            result = strtok( NULL,"/");
+        }
 
 return cmd;
 }

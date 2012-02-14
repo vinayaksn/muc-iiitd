@@ -1798,11 +1798,11 @@ void HTTPPrint_ddns_service(WORD i)
 void HTTPPrint_ddns_status(void)
 {
 	#if defined(STACK_USE_DYNAMICDNS_CLIENT)
-	DDNS_STATUS s;
-	s = DDNSGetLastStatus();
-	if(s == DDNS_STATUS_GOOD || s == DDNS_STATUS_UNCHANGED || s == DDNS_STATUS_NOCHG)
+	DDNS_STATUS adc_value;
+	adc_value = DDNSGetLastStatus();
+	if(adc_value == DDNS_STATUS_GOOD || adc_value == DDNS_STATUS_UNCHANGED || adc_value == DDNS_STATUS_NOCHG)
 		TCPPutROMString(sktHTTP, (ROM BYTE*)"ok");
-	else if(s == DDNS_STATUS_UNKNOWN)
+	else if(adc_value == DDNS_STATUS_UNKNOWN)
 		TCPPutROMString(sktHTTP, (ROM BYTE*)"unk");
 	else
 		TCPPutROMString(sktHTTP, (ROM BYTE*)"fail");
