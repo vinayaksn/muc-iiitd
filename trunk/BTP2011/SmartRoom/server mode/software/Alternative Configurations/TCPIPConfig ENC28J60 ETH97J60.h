@@ -65,7 +65,7 @@
  *   Uncomment or comment the following lines to enable or
  *   disabled the following high-level application modules.
  */
-#define STACK_USE_UART					// Application demo using UART for IP address display and stack configuration
+//#define STACK_USE_UART					// Application demo using UART for IP address display and stack configuration
 //#define STACK_USE_UART2TCP_BRIDGE		// UART to TCP Bridge application example
 //#define STACK_USE_IP_GLEANING
 #define STACK_USE_ICMP_SERVER			// Ping query and response capability
@@ -83,7 +83,7 @@
 //#define STACK_USE_SNMPV3_SERVER			// Simple Network Management Protocol v3 Agent
 //#define STACK_USE_TFTP_CLIENT			// Trivial File Transfer Protocol client
 //#define STACK_USE_GENERIC_TCP_CLIENT_EXAMPLE	// HTTP Client example in GenericTCPClient.c
-#define STACK_USE_GENERIC_TCP_SERVER_EXAMPLE	// ToUpper server example in GenericTCPServer.c
+//#define STACK_USE_GENERIC_TCP_SERVER_EXAMPLE	// ToUpper server example in GenericTCPServer.c
 //#define STACK_USE_TELNET_SERVER			// Telnet server
 //#define STACK_USE_ANNOUNCE				// Microchip Embedded Ethernet Device Discoverer server/client
 #define STACK_USE_DNS					// Domain Name Service Client for resolving hostname strings to IP addresses
@@ -108,7 +108,7 @@
  *   applications.  If your custom application requires it
  *   otherwise, uncomment the appropriate selection.
  */
-#define STACK_USE_MPFS
+//#define STACK_USE_MPFS
 //#define STACK_USE_MPFS2
 
 /* MPFS Storage Location

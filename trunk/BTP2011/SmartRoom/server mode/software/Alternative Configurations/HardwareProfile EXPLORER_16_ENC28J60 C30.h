@@ -52,7 +52,7 @@
 #define HARDWARE_PROFILE_H
 
 #include "Compiler.h"
-
+#include "pic_server.X/SmartRoom.h"
 // Define a macro describing this hardware set up (used in other files)
 #define EXPLORER_16
 
@@ -101,14 +101,16 @@
 
 // Hardware I/O pin mappings
 
-// LEDs
+// LEDs definition
+#if defined OLD_BOARD
+//New Board contains 6 LEDs connected to RA0, RA1, RA2
 #define LED0_TRIS			(TRISAbits.TRISA0)	// Ref D3
 #define LED0_IO				(LATAbits.LATA0)
 #define LED1_TRIS			(TRISAbits.TRISA1)	// Ref D4
 #define LED1_IO				(LATAbits.LATA1)
 #define LED2_TRIS			(TRISAbits.TRISA2)	// Ref D5
 #define LED2_IO				(LATAbits.LATA2)
-#define LED3_TRIS			(TRISAbits.TRISA3)	// Ref D6
+/*#define LED3_TRIS			(TRISAbits.TRISA3)	// Ref D6
 #define LED3_IO				(LATAbits.LATA3)
 #define LED4_TRIS			(TRISAbits.TRISA4)	// Ref D7
 #define LED4_IO				(LATAbits.LATA4)
@@ -120,6 +122,27 @@
 #define LED7_IO				(LATAbits.LATA7)
 #define LED_GET()			(*((volatile unsigned char*)(&LATA)))
 #define LED_PUT(a)			(*((volatile unsigned char*)(&LATA)) = (a))
+*/
+                        
+#elif defined NEW_BOARD
+//New Board contains 6 LEDs connected to RD1, RD2,RD3, RD12, RD13, RD14
+#define LED0_TRIS			(TRISDbits.TRISD1)	// Ref D1
+#define LED0_IO				(LATDbits.LATD1)
+#define LED1_TRIS			(TRISDbits.TRISD2)	// Ref D2
+#define LED1_IO				(LATDbits.LATD2)
+#define LED2_TRIS			(TRISDbits.TRISD3)	// Ref D3
+#define LED2_IO				(LATDbits.LATD3)
+#define LED3_TRIS			(TRISDbits.TRISD12)	// Ref D12
+#define LED3_IO				(LATDbits.LATD12)
+#define LED4_TRIS			(TRISDbits.TRISD13)	// Ref D13
+#define LED4_IO				(LATDbits.LATD13)
+#define LED5_TRIS			(TRISDbits.TRISD4)	// Ref D14
+#define LED5_IO				(LATDbits.LATD4)
+//#define LED_GET()			(*((volatile unsigned char*)(&LATA)))
+//#define LED_PUT(a)			(*((volatile unsigned char*)(&LATA)) = (a))
+
+#endif
+                        
 
 // Momentary push buttons
 #define BUTTON0_TRIS		(TRISDbits.TRISD13)	// Ref S4
@@ -150,8 +173,18 @@
 	#define ENC_SPICON1bits		(SPI2CON1bits)
 	#define ENC_SPICON2			(SPI2CON2)
 #else	// SPI1 for all other processors
+// chip select bit change according to new board for ENC2860
+     #if defined OLD_BOARD
 	#define ENC_CS_TRIS			(TRISDbits.TRISD14)	// Comment this line out if you are using the ENC424J600/624J600, MRF24WB0M, or other network controller.
 	#define ENC_CS_IO			(LATDbits.LATD14)
+        #define ENC_RST_TRIS                    (TRISDbits.TRISD15)
+        #define ENC_RST_IO                      (LATDbits.LATD15)
+     #elif defined NEW_BOARD
+      	#define ENC_CS_TRIS			(TRISBbits.TRISB2)	// Comment this line out if you are using the ENC424J600/624J600, MRF24WB0M, or other network controller.
+	#define ENC_CS_IO			(LATBbits.LATB2)
+        #define ENC_RST_TRIS                    (TRISDbits.TRISD9) // RST_1 pin
+        #define ENC_RST_IO                      (LATDbits.LATD9)   // RST_1 pin
+     #endif
 	// SPI SCK, SDI, SDO pins are automatically controlled by the 
 	// PIC24/dsPIC SPI module 
 	#define ENC_SPI_IF			(IFS0bits.SPI1IF)

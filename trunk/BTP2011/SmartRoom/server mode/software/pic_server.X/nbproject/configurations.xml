@@ -64,10 +64,16 @@
         <itemPath>../../Microchip/Include/TCPIP Stack/ZeroconfMulticastDNS.h</itemPath>
         <itemPath>../mib.h</itemPath>
       </logicalFolder>
+      <itemPath>../EEPROM.h</itemPath>
       <itemPath>../Alternative Configurations/HardwareProfile EXPLORER_16_ENC28J60 C30.h</itemPath>
+      <itemPath>../I2C.h</itemPath>
       <itemPath>../MainDemo.h</itemPath>
+      <itemPath>../RTCC.h</itemPath>
       <itemPath>SmartRoom.h</itemPath>
       <itemPath>../Alternative Configurations/TCPIPConfig ENC28J60 ETH97J60.h</itemPath>
+      <itemPath>../defines.h</itemPath>
+      <itemPath>../hd44780.h</itemPath>
+      <itemPath>../lcd.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LibraryFiles"
                    displayName="Library Files"
@@ -153,13 +159,18 @@
       <itemPath>../CustomHTTPApp.c</itemPath>
       <itemPath>../CustomSNMPApp.c</itemPath>
       <itemPath>../CustomSSLCert.c</itemPath>
+      <itemPath>../EEPROM.c</itemPath>
+      <itemPath>../HttpPostNew.c</itemPath>
+      <itemPath>../I2C.c</itemPath>
       <itemPath>../MainDemo.c</itemPath>
       <itemPath>../Motionsense.c</itemPath>
+      <itemPath>../RTCC.c</itemPath>
       <itemPath>SmartRoom.c</itemPath>
-      <itemPath>../httpadcpost.c</itemPath>
+      <itemPath>../hd44780.c</itemPath>
       <itemPath>../httppost.c</itemPath>
       <itemPath>../httpposttag.c</itemPath>
       <itemPath>../ir.c</itemPath>
+      <itemPath>../lcd.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -177,7 +188,7 @@
         <developmentServer>localhost</developmentServer>
         <targetDevice>PIC24FJ128GA010</targetDevice>
         <targetHeader></targetHeader>
-        <platformTool>PICkit2PlatformTool</platformTool>
+        <platformTool>ICD3PlatformTool</platformTool>
         <languageToolchain>C30</languageToolchain>
         <languageToolchainVersion>3_30b</languageToolchainVersion>
         <platform>2</platform>
@@ -217,8 +228,8 @@
         <property key="list-source" value="false"/>
         <property key="list-assembly" value="false"/>
         <property key="relax" value="false"/>
-        <property key="warning-level" value="emit-warnings"/>
         <property key="extra-include-directories-for-preprocessor" value=""/>
+        <property key="warning-level" value="emit-warnings"/>
         <property key="list-section-info" value="false"/>
         <property key="omit-forms" value="false"/>
         <property key="list-symbols" value="false"/>
@@ -244,25 +255,25 @@
         <property key="enable-handles" value="true"/>
         <property key="enable-data-init" value="true"/>
         <property key="secure-flash" value="no_flash"/>
-        <property key="generate-cross-reference-file" value="false"/>
-        <property key="report-memory-usage" value="true"/>
-        <property key="boot-flash" value="no_flash"/>
         <property key="boot-write-protect" value="no_write_protect"/>
+        <property key="boot-flash" value="no_flash"/>
+        <property key="report-memory-usage" value="true"/>
+        <property key="generate-cross-reference-file" value="false"/>
         <property key="input-libraries" value=""/>
         <property key="secure-ram" value="no_ram"/>
         <property key="enable-check-sections" value="false"/>
         <property key="enable-default-isr" value="true"/>
         <property key="symbol-stripping" value="keep-all"/>
         <property key="boot-ram" value="no_ram"/>
-        <property key="extra-lib-directories" value=".."/>
         <property key="secure-eeprom" value="no_eeprom"/>
+        <property key="extra-lib-directories" value=".."/>
       </C30-LD>
       <C30Global>
         <property key="fast-math" value="false"/>
         <property key="legacy-libc" value="false"/>
       </C30Global>
-      <PICkit2PlatformTool>
-      </PICkit2PlatformTool>
+      <ICD3PlatformTool>
+      </ICD3PlatformTool>
     </conf>
   </confs>
 </configurationDescriptor>
