@@ -10,7 +10,7 @@
 
 #include "pic_server.X/SmartRoom.h"
 #include "TCPIP Stack/TCPIP.h"
-
+#include "EEPROM.h"
 
    typedef struct{
         BYTE addr[16];
@@ -19,7 +19,7 @@
 
    // For time being capabilities to push data on a single server only
     IP_ADDRESS ip_addresses[]={
-        {"192.168.0.2","/sensorsafe/upload"}
+        {"192.168.0.3","/sensorsafe/upload"}
     };
 
     #define TOTAL_IP_PUBLISH 1
@@ -73,7 +73,7 @@
     #define NUM_APPLIANCES sizeof(appliances)/sizeof(appliances[0])
     #define APPLIANCE_NUM(num) appliances[num].app_num
 
-
+    extern void HTTPPostTask(BYTE* ServerName,BYTE* ServerPath); // HTTP post
     void ADCInit(); // initialize adc module
     double ReadADCData(unsigned int); // function to read adc value for a given channel
 
@@ -81,13 +81,13 @@
     void makeJson(REQUEST_TYPE req,char [],char [],char [],char [],char []);
     
     
-    char *arguments [HTTP_MAX_ARGS]; // Store Http GET arguments, for HTTPServer request
-    char *Buff_Json; // Buffer to store JSON object to send as response for HTTPServer
-    char *Node_location="faculty_room"; //Node location to verify incoming queries
+    extern char *arguments [HTTP_MAX_ARGS]; // Store Http GET arguments for HTTPServer request, defined in HTTP.c
+    extern char *Buff_Json; // Buffer to store JSON object to send as response for HTTPServer, defined in HTTP.c
+       
 
     /* string pointer array to hold JSON responses for data publish*/
     char *json_pub_arguments[JSON_OBJ_ARGS];
-
+    char *Node_location="faculty_room"; //Node location to verify incoming queries
     /*arguments to be sent in JSON object for data publishing */
     char api_key[] ="apikey=feddce389dece00bf84cbd0f58e4d456f4b67bbc";
     char json_header[]="&data={\"location\":\"faculty_room\",\"data_channel\":              ,\"sid\":     ,\"timestamp\":             ,\"sampling_interval\":  ,\"data\":[";
@@ -105,7 +105,6 @@
   
     /*stores latest time stamp*/
     static DWORD Ntp_TimeStamp=0;
-
 
     unsigned short int flag_http_post=2; // flag to http post done
     unsigned short int flush_readings_flag=0; // flush readings or not
@@ -164,31 +163,37 @@ void frequencyConvertor(){
  *******************************************************************************/
 void Initialize_Pins(void){
 
-	AD1PCFGbits.PCFG4=1; // setting digital i/p for PIR sensor at AN4 , pin 2 on board
-	_TRIS(PIR_1)=1;  // specify RB4, pin 2 as input for PIR
+#ifdef OLD_BOARD
+	AD1PCFGbits.PCFG4=1; // setting digital i/o for PIR sensor at AN4 , pin 2 on board
 
-        AD1PCFGbits.PCFG3=1; // setting digital i/p for PIR sensor at AN3 , pin 3 on board
-	_TRIS(PIR_2)=1;  // specify RB3, pin 2 as input for PIR
+        AD1PCFGbits.PCFG3=1; // setting digital i/o for PIR sensor at AN3 , pin 3 on board
 
-	AD1PCFGbits.PCFG2=1; // setting digital i/p for REED-1 sensor at AN2 , pin 4 on board
-	_TRIS(DOOR_1)=1;  // specify AN3, pin 3 as input for REED-1
+	AD1PCFGbits.PCFG2=1; // setting digital i/o for REED-1 sensor at AN2 , pin 4 on board
 
-	AD1PCFGbits.PCFG1=1; // setting digital i/p for REED-2 sensor at AN1 , pin 5 on board
-        _TRIS(DOOR_2)=1;  // specify AN2, pin 4 as input for REED-2
-
-	AD1PCFGbits.PCFG0=0; // setting analog input on AN0, Pin 6 on board, for LM35-1
-
-        AD1PCFGbits.PCFG9=0;// setting analog input on AN11, pin 7 on board, for LM35-2
+	AD1PCFGbits.PCFG1=1; // setting digital i/o for REED-2 sensor at AN1 , pin 5 on board
+	AD1PCFGbits.PCFG0=0; // setting analog i/o on AN0, Pin 6 on board, for LM35-1
+        AD1PCFGbits.PCFG9=0;// setting analog i/o on AN11, pin 7 on board, for LM35-2
 
         // end of input declarations........
 
-	//Output Declarations ............. set all pins as output
-        _TRIS(FAN_1)=0; 
-        _TRIS(LIGHT_1)=0; 
-	_TRIS(PLUG_1)=0; 
-        _TRIS(FAN_2)=0; 
-	_TRIS(LIGHT_2)=0; 
-	_TRIS(PLUG_2)=0; 
+	
+#elif defined NEW_BOARD
+        AD1PCFGbits.PCFG0=0; // setting analog i/o on AN0, Pin 6 on board, for LM35-1
+        AD1PCFGbits.PCFG1=0;// setting analog i/o on AN11, pin 7 on board, for LM35-2
+        ENC28_ADPCFGbit=1; //  setting digital i/o on AN2, for SS1 of SPI1 , ENC28J60
+#endif
+        _TRIS(PIR_1)=1;  // specify RB4, pin 2 as input for PIR
+        _TRIS(PIR_2)=1;  // specify RB3, pin 2 as input for PIR
+        _TRIS(DOOR_1)=1;  // specify AN3, pin 3 as input for REED-1
+        _TRIS(DOOR_2)=1;  // specify AN2, pin 4 as input for REED-2
+        
+        //Output Declarations ............. set all pins as output
+        _TRIS(FAN_1)=0;
+        _TRIS(LIGHT_1)=0;
+	_TRIS(PLUG_1)=0;
+        _TRIS(FAN_2)=0;
+	_TRIS(LIGHT_2)=0;
+	_TRIS(PLUG_2)=0;
 	_TRIS(FAN_1)=0;
 
         // SET all output pins as LOW
@@ -199,8 +204,8 @@ void Initialize_Pins(void){
         _PORT(LIGHT_2)=0;
         _PORT(PLUG_1)=0;
         _PORT(PLUG_2)=0;
-        
-        ADCInit(); //initialize ADC module
+
+     ADCInit(); //initialize ADC module
 
      frequencyConvertor(); // convert frequencies for sensors
 }
@@ -443,7 +448,7 @@ void Publish_Data(void){
         if(flag_http_post){ // if socket is available to post
             sense_num = (sense_num+1)%NUM_SENSORS_;
             makeJsonObject(sense_num);
-            HTTPADCPostTask(ip_addresses[ip_num].addr,ip_addresses[ip_num].path); // post previous url for other IPs
+            HTTPPostTask(ip_addresses[ip_num].addr,ip_addresses[ip_num].path); // post previous url for other IPs
         }
 
         /*once all sensor's data is posted just truncate the readings*/
@@ -453,7 +458,7 @@ void Publish_Data(void){
         
         if(!flag_http_post){ // if not posted just post the previous
 
-            HTTPADCPostTask(ip_addresses[ip_num].addr,ip_addresses[ip_num].path);
+            HTTPPostTask(ip_addresses[ip_num].addr,ip_addresses[ip_num].path);
         }
     }
 
@@ -712,8 +717,7 @@ void makeJson(REQUEST_TYPE req,char str1[],char str2[],char str3[],char str4[],c
     switch(req){
         case ACTUATE :
         case STATE : Buff_Json = status; break;
-
-    };
+    }
 
 			BYTE i,j,count=0;
 			BYTE len = strlen(Buff_Json);
@@ -806,10 +810,11 @@ void makeJson(REQUEST_TYPE req,char str1[],char str2[],char str3[],char str4[],c
                                     }
 
 			        default : break;
+                                } // end switch
+                            } // end if
+                        } // end for
 
-                                }
-					}
-			}
+  //  readeeprom(0x00,0x00,11,Buff_Json);
 }
 
 void ADCInit(){

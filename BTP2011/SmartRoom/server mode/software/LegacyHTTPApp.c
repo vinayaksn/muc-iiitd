@@ -403,10 +403,10 @@ WORD HTTPGetVar(BYTE var, WORD ref, BYTE* val)
         *val = LED5_IO ? '1':'0';
         break;
     case VAR_LED6:
-        *val = LED6_IO ? '1':'0';
+        *val = LED5_IO ? '1':'0';
         break;
     case VAR_LED7:
-        *val = LED7_IO ? '1':'0';
+        *val = LED5_IO ? '1':'0';
         break;
 
     case VAR_ANAIN_AN0:
