@@ -24,7 +24,7 @@
 
     #define TOTAL_IP_PUBLISH 1
 
-    
+
     /* define new sensor specifications*/
 
     typedef struct{
@@ -39,7 +39,7 @@
 
 #define ADC_READING_SIZE 300 // array size to store adc type readings eg. temperature
 #define BIN_READING_SIZE 100 // array size to store binary type readings eg. pir
-    
+
      unsigned char temp1_reading[ADC_READING_SIZE]; // array to store readings for temperature 1
      unsigned char temp2_reading[ADC_READING_SIZE]; // array to store readings for temperature 2
      unsigned char  pir1_reading[BIN_READING_SIZE]; // array to store readings for pir 1
@@ -57,7 +57,7 @@
         {"reed",'2',"0",BIN_READING_SIZE,reed2_reading,(float)2}
     };
 
-    
+
     /* define appliances to actutate */
     typedef struct{
         char app_name[15];
@@ -79,11 +79,11 @@
 
     /*function to create json object with corresponing entries */
     void makeJson(REQUEST_TYPE req,char [],char [],char [],char [],char []);
-    
-    
+
+
     extern char *arguments [HTTP_MAX_ARGS]; // Store Http GET arguments for HTTPServer request, defined in HTTP.c
     extern char *Buff_Json; // Buffer to store JSON object to send as response for HTTPServer, defined in HTTP.c
-       
+
 
     /* string pointer array to hold JSON responses for data publish*/
     char *json_pub_arguments[JSON_OBJ_ARGS];
@@ -102,19 +102,19 @@
     char invalid_location[]="{\n\"Error\":[\n{\"Description\":\"Invalid location\"},\n{\"ERRCODE\":\"3\"}\n]\n}";
     char invalid_id[]= "{\n\"Error\":[\n{\"Description\":\"Invalid id\"},\n{\"ERRCODE\":\"4\"}\n]\n}";
     char unknown_error[]="{\n\"Error\":[\n{\"Description\":\"unknown\"},\n{\"ERRCODE\":\"404\"}\n]\n}";
-  
+
     /*stores latest time stamp*/
     static DWORD Ntp_TimeStamp=0;
 
     unsigned short int flag_http_post=2; // flag to http post done
     unsigned short int flush_readings_flag=0; // flush readings or not
-    
+
     char temp[8]; // to store temporary reading
 
     char timestamp[15]; // stores time stamp as string
 
     float adc_value;
-    
+
     unsigned short int i,j;
     BYTE ip_num=0u;
     short int sense_num=-1;
@@ -131,7 +131,7 @@ void frequencyConvertor(){
     BYTE i = 0u;
     WORD freq;
     float arg_frq;
-    
+
     for(i=0u ;i < NUM_SENSORS_ ; i++){
         if((sensors[i].samp_freq < 1) && (sensors[i].samp_freq > 0)){
             freq = 0;
@@ -176,7 +176,7 @@ void Initialize_Pins(void){
 
         // end of input declarations........
 
-	
+
 #elif defined NEW_BOARD
         AD1PCFGbits.PCFG0=0; // setting analog i/o on AN0, Pin 6 on board, for LM35-1
         AD1PCFGbits.PCFG1=0;// setting analog i/o on AN11, pin 7 on board, for LM35-2
@@ -186,7 +186,7 @@ void Initialize_Pins(void){
         _TRIS(PIR_2)=1;  // specify RB3, pin 2 as input for PIR
         _TRIS(DOOR_1)=1;  // specify AN3, pin 3 as input for REED-1
         _TRIS(DOOR_2)=1;  // specify AN2, pin 4 as input for REED-2
-        
+
         //Output Declarations ............. set all pins as output
         _TRIS(FAN_1)=0;
         _TRIS(LIGHT_1)=0;
@@ -231,19 +231,19 @@ void take_Reading(unsigned short int sense_index){
                              sprintf(temp,"%05.2f",adc_value); // convert to string
                              temp[5]=',';
                              temp[6]='\0';
-                     
+
                   break;
                  }
-        
+
         case 1 :{            adc_value = ReadADCData(Temp_Sensor_2);  //read adc data for temperature 1
                              adc_value = (adc_value*(.3))/6; //multiply and divide to caliberate, amplification=6
                              sprintf(temp,"%05.2f",adc_value); // convert to string
                              temp[5]=',';
                              temp[6]='\0';
-                     
+
                   break;
         }
-        case 2 :{   
+        case 2 :{
                           if(_PORT(PIR_1)){
                               strcpy(temp,"1,");
                           }else{
@@ -288,7 +288,7 @@ void take_Reading(unsigned short int sense_index){
     if((sensors[sense_index].size - strlen(sensors[sense_index].readings)) >= strlen(temp))
         strcat(sensors[sense_index].readings,temp);
 
-    
+
 }
 
 /**************************************************************************************
@@ -299,9 +299,9 @@ void take_Reading(unsigned short int sense_index){
 void fillData(){
 
     unsigned short int i,j;
-    
+
 /*attach starting timestamp (in EPOCH )with every sensor*/
-        if(pb_counter == 0) 
+        if(pb_counter == 0)
         {
             Ntp_TimeStamp = SNTPGetUTCSeconds();
             snprintf(timestamp,sizeof(timestamp)-1,"%lu",Ntp_TimeStamp);
@@ -319,11 +319,11 @@ void fillData(){
 
         if(sensors[i].samp_freq_convr)
         {
-        
+
          if((pb_counter % (pb_send_sec/sensors[i].samp_freq_convr))==0)
             take_Reading(i);
         }
-        
+
         for( j= 0u ; j< (WORD)(sensors[i].samp_freq); j++){
             take_Reading(i);
         }
@@ -350,10 +350,10 @@ void makeJsonObject(unsigned short int index){
 
     static unsigned short int len=0;
     unsigned short int len1=0;
-    
-    
+
+
     /*if location to fill is already known, jump to fill_data directly*/
-    if((loc_sensor) && (loc_sid) && (loc_time) && (loc_rate)) 
+    if((loc_sensor) && (loc_sid) && (loc_time) && (loc_rate))
         goto fill_data;
 
     // find locations to fill data
@@ -369,20 +369,20 @@ void makeJsonObject(unsigned short int index){
                         case 5: loc_rate=i; goto fill_data; //start frm 6th ':'
                 }
             }
-            
+
        }
 
    fill_data:
         /*fill sensor name in json header string*/
       len1 = strlen(sensors[index].name);
-   
+
             if(len1 > 0){
                 i = loc_sensor;
                 temp_json[++i]='"';
                 i++;
             for(j=0;j<len1;i++,j++)
                 temp_json[i] = sensors[index].name[j];
-                
+
                 temp_json[i++]='"';
 
             while(temp_json[i]!=',')
@@ -393,7 +393,7 @@ void makeJsonObject(unsigned short int index){
      /*fill sensor id*/
      i = loc_sid;
      temp_json[i+1]=sensors[index].id;
-                
+
      /*insert starting timestamp*/
 
     len1 = strlen(sensors[index].starttimestamp);
@@ -436,15 +436,15 @@ void makeJsonObject(unsigned short int index){
     WORD last_index = strlen(sensors[index].readings) -1 ;
        if(sensors[index].readings[last_index] == ',')
             sensors[index].readings[last_index] = '\0';
-       
+
       json_pub_arguments[2] = &(sensors[index].readings[0]);
-      
+
 }
 
 void Publish_Data(void){
-    
+
      if(pb_counter >= pb_send_sec){
-                   
+
         if(flag_http_post){ // if socket is available to post
             sense_num = (sense_num+1)%NUM_SENSORS_;
             makeJsonObject(sense_num);
@@ -455,26 +455,26 @@ void Publish_Data(void){
         if(sense_num==(NUM_SENSORS_-1)){
             flush_readings_flag=1;
         }
-        
+
         if(!flag_http_post){ // if not posted just post the previous
 
             HTTPPostTask(ip_addresses[ip_num].addr,ip_addresses[ip_num].path);
         }
     }
 
-        
+
     if(flush_readings_flag && flag_http_post){
 
         pb_counter=0; // refresh counter for publish data
         unsigned short int k;
-        
+
         for(k=0;k< NUM_SENSORS_;k++){
            strcpy(sensors[k].readings,"\0");
-           
+
         }
         flush_readings_flag=0;
     }
-   
+
 }
 
 /* FUNCTIONS SPECIFIC TO COMPOSE RESPONSE FOR HTTPSever REQUEST */
@@ -497,7 +497,7 @@ void Make_Error_Json(ERROR_TYPE err){
 /******************************************************************************
  * check the type of data request, appliance state and call MakeJson
  * with corresponding entries
- * 
+ *
  *****************************************************************************/
 void checkStateAndMakeJson(REQUEST_TYPE request,unsigned short int num, unsigned short int id){
 
@@ -573,7 +573,7 @@ void checkStateAndMakeJson(REQUEST_TYPE request,unsigned short int num, unsigned
                         break;
 
                 case 2 : // PLUG
-                    
+
                         switch(id){
                             case 1: //PLUG_1
                                     if(request==ACTUATE){
@@ -605,7 +605,7 @@ void checkStateAndMakeJson(REQUEST_TYPE request,unsigned short int num, unsigned
             }; //end appliance check switch(num)
          break;
     }//end status request
-    
+
       case INVALID : {Make_Error_Json(INVALID_REQUEST); break; }
     };
 }
@@ -649,7 +649,7 @@ void Check_Appliance(REQUEST_TYPE request){
         }
     }
       Make_Error_Json(INVALID_APPLIANCE);
-    
+
 }
 /******************************************************************************
  * Check location specified in URL
@@ -664,19 +664,19 @@ void Check_Appliance(REQUEST_TYPE request){
 void Check_location(REQUEST_TYPE request){
 
     if(strcmp(arguments[1],Node_location)==0){
-        
+
         if((request==STATE)||(request==ACTUATE))
             Check_Appliance(request);
     }else{
         Make_Error_Json(INVALID_LOCATION);
     }
-      
+
 }
 /*******************************************************************************
  * Description :
  *      Main Entry point, called from HTTP SERVER module ,
  *      checks argument[0] and forward request type to check_location().
- * 
+ *
  * Author :
  * #A/M
  *
@@ -688,12 +688,12 @@ void Build_Json_Response(void){
           Check_location(request);
       }
 
-           
+
       else if(strcmp(arguments[0],"state")==0){
           REQUEST_TYPE request = STATE;
           Check_location(request);
       }
-      
+
       else
           Make_Error_Json(INVALID_REQUEST);
 }
@@ -704,7 +704,7 @@ void Build_Json_Response(void){
  * Parameters :
  *  REQUEST TYPE : DATA, ACTUATE or STATE
  *  str1 - str5  : strings to feed in the in Buff_Json which points to status[]
- * 
+ *
  * Return :
  * none
  *
@@ -721,7 +721,7 @@ void makeJson(REQUEST_TYPE req,char str1[],char str2[],char str3[],char str4[],c
 
 			BYTE i,j,count=0;
 			BYTE len = strlen(Buff_Json);
-                        
+
 			for(i=0u ; i<len ;i++)
 			{
                             if(Buff_Json[i]==':'){
@@ -753,7 +753,7 @@ void makeJson(REQUEST_TYPE req,char str1[],char str2[],char str3[],char str4[],c
                                                 Buff_Json[i] = str2[j];
 
                                             Buff_Json[i++]='"';
-                                            
+
                                             while(Buff_Json[i]!='}')
                                                 Buff_Json[i++]=' ';
 
@@ -778,16 +778,16 @@ void makeJson(REQUEST_TYPE req,char str1[],char str2[],char str3[],char str4[],c
                                     case 5u: {
                                         BYTE len4  = strlen(str4);
                                         if(len4 > 0u){
-                                            
+
                                                 Buff_Json[i++]='"';
-                                                
+
                                                 for(j=0u;j<len4;i++,j++)
                                                     Buff_Json[i] = str4[j];
                                                 Buff_Json[i++]='"';
-                                                
+
                                                 while(Buff_Json[i]!='}')
                                                     Buff_Json[i++]=' ';
-        
+
                                         }
                                         break;
                                     }
@@ -804,7 +804,7 @@ void makeJson(REQUEST_TYPE req,char str1[],char str2[],char str3[],char str4[],c
 
                                             while(Buff_Json[i]!='}')
                                                 Buff_Json[i++]=' ';
-                                            
+
                                         }
                                         break;
                                     }
