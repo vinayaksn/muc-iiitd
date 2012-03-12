@@ -778,9 +778,9 @@ static void InitializeBoard(void)
 	LED3_TRIS = 0;
 	LED4_TRIS = 0;
 	LED5_TRIS = 0;
-	LED6_TRIS = 0;
-	LED7_TRIS = 0;
-	LED_PUT(0x00);
+//	LED6_TRIS = 0;
+//	LED7_TRIS = 0;
+//	LED_PUT(0x00);
 
 #if defined(__18CXX)
 	// Enable 4x/5x/96MHz PLL on PIC18F87J10, PIC18F97J60, PIC18F87J50, etc.

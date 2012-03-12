@@ -161,7 +161,7 @@ typedef enum
 typedef struct
 {
     TCP_SOCKET socket;
-    MPFS file;
+    //MPFS file;
     SM_HTTP smHTTP;
     BYTE smHTTPGet;
     WORD VarRef;
@@ -187,9 +187,9 @@ static ROM BYTE * ROM HTTPMessages[] =
 
 
 #ifdef SMART_ROOM  // #A/M
-extern char* arguments[HTTP_MAX_ARGS]; /*defined in SmartRoom.c, Holds arguments of GET request*/
-extern char* Buff_Json; /*defined in SmartRoom.c, Holds JSON ojbect to send as response*/
-extern void Build_Json_Response(); /*defined in SmartRoom.c, main function to process request*/
+char* arguments[HTTP_MAX_ARGS]; /*defined in SmartRoom.c, Holds arguments of GET request*/
+char* Buff_Json; /*defined in SmartRoom.c, Holds JSON ojbect to send as response*/
+//extern void Build_Json_Response(); /*defined in SmartRoom.c, main function to process request*/
 #endif
 
 // Standard HTTP messages.
@@ -223,16 +223,16 @@ static HTTP_INFO HCB[MAX_HTTP_CONNECTIONS];
 static void HTTPProcess(HTTP_HANDLE h);
 
 /* Not required for Smart Room implementation #A/M */
-static HTTP_COMMAND HTTPParse(BYTE *string,
+/*static HTTP_COMMAND HTTPParse(BYTE *string,
                               BYTE** arg,
                               BYTE* argc,
-                              BYTE* type);
+                              BYTE* type);*/
 
 /*Parser to extract arguments from GET request URL #A/M */
 static HTTP_COMMAND Parser(unsigned char *str,BYTE* argc);
 
 /* Not required for Smart Room implementation #A/M */
-static BOOL SendFile(HTTP_INFO* ph);
+//static BOOL SendFile(HTTP_INFO* ph);
 
 
 
@@ -364,7 +364,7 @@ static void HTTPProcess(HTTP_HANDLE h)
 				w = sizeof(httpData)-1;
 
 			TCPGetArray(ph->socket, httpData, w);
-                        
+
             httpData[w] = '\0';
             TCPDiscard(ph->socket);
 
@@ -373,7 +373,7 @@ static void HTTPProcess(HTTP_HANDLE h)
             //httpCommand = HTTPParse(httpData, arg, &argc, &ph->fileType); #A/M
             argc = 0u;
            httpCommand = Parser(httpData,&argc); /* Use Parser #A/M */
-           
+
             if ( httpCommand == HTTP_GET)
             {
                 // If there are any arguments, this must be a remote command.
@@ -405,7 +405,7 @@ static void HTTPProcess(HTTP_HANDLE h)
                     ph->smHTTP = SM_HTTP_HEADER;
                 }
             }*/
-            
+
             break;
 
         case SM_HTTP_NOT_FOUND:
@@ -416,7 +416,7 @@ static void HTTPProcess(HTTP_HANDLE h)
 				TCPDisconnect(ph->socket);
 				ph->smHTTP = SM_HTTP_IDLE;
             }
-            
+
             break;
 
         case SM_HTTP_HEADER:
@@ -446,10 +446,10 @@ static void HTTPProcess(HTTP_HANDLE h)
     /*case SM_HTTP_GET_JSON added to support smartroom type JSON objects #A/M */
       case SM_HTTP_GET_JSON:
             {
- 
+
                 /* check whether socket is ready or not */
               if(TCPIsPutReady(ph->socket)){
-                  
+
                   /*call function to process arguments extracted by parser*/
                 Build_Json_Response();
 
@@ -457,10 +457,10 @@ static void HTTPProcess(HTTP_HANDLE h)
                 TCPPutROMArray(ph->socket, (ROM BYTE*)HTTP_OK_STRING, HTTP_OK_STRING_LEN);
                 TCPPutROMString(ph->socket,"application/json");
                 TCPPutROMArray(ph->socket, (ROM BYTE*)HTTP_HEADER_END_STRING, HTTP_HEADER_END_STRING_LEN);
-                             
+
                 /*Put JSON compiled by Build_Json_Response call*/
                 TCPPutROMString(ph->socket,Buff_Json);
-                
+
                 //send and Disconnect
                  TCPFlush(ph->socket);
                  TCPDisconnect(ph->socket);
@@ -473,13 +473,13 @@ static void HTTPProcess(HTTP_HANDLE h)
         case SM_HTTP_GET:
 			// Throw away any more data receieved - we aren't going to use it.
 			TCPDiscard(ph->socket);
-
-            if(SendFile(ph))
+            // if block commented to remove MPFS implementation #A/M
+           /* if(SendFile(ph))
             {
                 MPFSClose();
 				TCPDisconnect(ph->socket);
                 ph->smHTTP = SM_HTTP_IDLE;
-            }
+            }*/
             break;
 
 		default:
@@ -504,7 +504,7 @@ static void HTTPProcess(HTTP_HANDLE h)
  *
  * Note:            None.
  ********************************************************************/
-static BOOL SendFile(HTTP_INFO* ph)
+/*static BOOL SendFile(HTTP_INFO* ph)
 {
     BOOL lbTransmit;
     BYTE c;
@@ -607,7 +607,7 @@ static BOOL SendFile(HTTP_INFO* ph)
 
     // We are not done sending a file yet...
     return FALSE;
-}
+}*/
 
 
 /*********************************************************************
@@ -711,7 +711,7 @@ static HTTP_COMMAND HTTPParse(BYTE *string,
         case SM_PARSE_ARG:
             arg[i++] = string;
             smParse = SM_PARSE_ARG_FORMAT;
-           
+
         case SM_PARSE_ARG_FORMAT:
             c = *string;
             if ( c == '?' || c == '&' )
@@ -821,7 +821,7 @@ static HTTP_COMMAND Parser(unsigned char *str,BYTE* argc){
 
 
     char delims[] =" ";
-    unsigned char *result = NULL;
+    char *result = NULL;
 
     HTTP_COMMAND cmd = HTTP_INVALID_COMMAND;
 
