@@ -1,0 +1,1 @@
+This is a repository for some of the projects being undertaken in the mobile computing group at IIIT-Delhi
